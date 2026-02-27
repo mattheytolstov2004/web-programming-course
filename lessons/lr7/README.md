@@ -1021,7 +1021,7 @@ test.describe('Quiz Application E2E', () => {
     await expect(page.locator('h2')).toBeVisible();
 
     // Проверить наличие прогресс-бара
-    await expect(page.locator('text=/Вопрос \\d+ из \\d+/')).toBeVisible();
+    await expect(page.locator('text=/ \\d+ из \\d+/')).toBeVisible();
 
     // Если это multiple-select - выбрать вариант
     const firstOption = page.locator('button').filter({ hasText: /^A/ }).first();
@@ -1048,6 +1048,7 @@ test.describe('Quiz Application E2E', () => {
 
 ```bash
 npm run test:e2e
+npm run test:e2e:ui
 ```
 
 ---

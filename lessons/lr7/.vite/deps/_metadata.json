@@ -1,0 +1,55 @@
+{
+  "hash": "3c418368",
+  "configHash": "bbecba15",
+  "lockfileHash": "ddcdbf2e",
+  "browserHash": "afcedcac",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "882b5817",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "100dab59",
+      "needsInterop": true
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "d08d32f5",
+      "needsInterop": false
+    },
+    "@tanstack/react-query-devtools": {
+      "src": "../../node_modules/@tanstack/react-query-devtools/build/modern/index.js",
+      "file": "@tanstack_react-query-devtools.js",
+      "fileHash": "2b7bc29d",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-MG7QDGTW": {
+      "file": "chunk-MG7QDGTW.js"
+    },
+    "chunk-ZDUQQDQL": {
+      "file": "chunk-ZDUQQDQL.js"
+    },
+    "6ELMOJL2-ITFFYMMI": {
+      "file": "6ELMOJL2-ITFFYMMI.js"
+    },
+    "PULY4AJ7-QL5ZD5QX": {
+      "file": "PULY4AJ7-QL5ZD5QX.js"
+    },
+    "chunk-S3JVCS47": {
+      "file": "chunk-S3JVCS47.js"
+    },
+    "chunk-XUYCH2BJ": {
+      "file": "chunk-XUYCH2BJ.js"
+    },
+    "chunk-QWN5BXRD": {
+      "file": "chunk-QWN5BXRD.js"
+    }
+  }
+}
