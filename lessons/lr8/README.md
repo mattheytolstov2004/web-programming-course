@@ -58,9 +58,7 @@ Backend приложение на `localhost:3000`, которое:
 **1. Используйте Hono стартер (рекомендуется):**
 
 ```bash
-npm create hono@latest quiz-backend -- --template nodejs
-cd quiz-backend
-npm install
+
 ```
 
 **2. Установите дополнительные пакеты:**
