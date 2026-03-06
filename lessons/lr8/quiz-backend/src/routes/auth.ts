@@ -6,39 +6,57 @@ import { githubCallbackSchema } from '../utils/validation.js'
 
 const authRoute = new Hono()
 
-// GitHub OAuth callback
-authRoute.post('/github/callback', async (c) => {
-  try {
-    const body = await c.req.json()
-    const parsed = githubCallbackSchema.safeParse(body)
+// ✅ ДОБАВЬТЕ ЭТОТ МАРШРУТ - редирект на GitHub для авторизации
+authRoute.get('/github', (c) => {
+  const clientId = process.env.GITHUB_CLIENT_ID
+  const redirectUri = 'http://localhost:3000/api/auth/github/callback'
+  
+  if (!clientId) {
+    return c.json({ error: 'GITHUB_CLIENT_ID not configured' }, 500)
+  }
+  
+  // Перенаправляем пользователя на GitHub для авторизации
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`
+  
+  return c.redirect(githubAuthUrl)
+})
 
-    if (!parsed.success) {
-      return c.json({ error: 'Invalid code' }, 400)
+// GitHub OAuth callback (уже есть)
+authRoute.get('/github/callback', async (c) => {
+  try {
+    const code = c.req.query('code')
+    
+    if (!code) {
+      return c.json({ error: 'No code provided' }, 400)
     }
 
-    const githubUser = await getGitHubUserByCode(parsed.data.code)
-
+    const githubUser = await getGitHubUserByCode(code)
+    
+    // Получаем email из GitHub пользователя
     const email = githubUser.email ?? `${githubUser.id}@users.noreply.github.com`
     const name = githubUser.name ?? null
     const githubId = String(githubUser.id)
 
+    // Создаем или обновляем пользователя в базе данных
     const user = await prisma.user.upsert({
       where: { githubId },
       update: { email, name },
       create: { githubId, email, name },
     })
 
+    // Создаем JWT токен
     const now = Math.floor(Date.now() / 1000)
     const token = await sign(
       {
         sub: user.id,
         email: user.email,
         iat: now,
-        exp: now + 60 * 60 * 24,
+        exp: now + 60 * 60 * 24, // 24 часа
       },
       process.env.JWT_SECRET as string
     )
 
+    // Возвращаем токен и данные пользователя
     return c.json({
       token,
       user: {
@@ -53,13 +71,12 @@ authRoute.post('/github/callback', async (c) => {
     if (error instanceof Error && error.name === 'GitHubServiceError') {
       return c.json({ error: error.message }, 400)
     }
-
     console.error('GitHub callback failed:', error)
     return c.json({ error: 'Internal server error' }, 500)
   }
 })
 
-// Get current user (JWT protected)
+// Get current user (JWT protected) - уже есть
 authRoute.get('/me', async (c) => {
   const authHeader = c.req.header('Authorization')
 
