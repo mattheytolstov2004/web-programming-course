@@ -6,7 +6,7 @@ import { githubCallbackSchema } from '../utils/validation.js'
 
 const authRoute = new Hono()
 
-// ✅ ДОБАВЬТЕ ЭТОТ МАРШРУТ - редирект на GitHub для авторизации
+
 authRoute.get('/github', (c) => {
   const clientId = process.env.GITHUB_CLIENT_ID
   const redirectUri = 'http://localhost:3000/api/auth/github/callback'
