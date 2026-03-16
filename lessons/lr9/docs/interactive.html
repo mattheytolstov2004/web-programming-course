@@ -1,848 +1,540 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LR9 Interactive Examples - Database & Scoring</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <title>Hono Backend API - Интерактивные примеры</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 16px;
-        }
-
-        .search-box {
-            margin: 20px 0 0 0;
-            display: flex;
-            gap: 10px;
-        }
-
-        #search {
-            flex: 1;
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-
-        #search:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .filter-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .tag {
-            padding: 6px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: white;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .tag:hover {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .tag.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .examples-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .example-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .example-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-        }
-
-        .example-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-        }
-
-        .example-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .example-category {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-
-        .example-body {
-            padding: 20px;
-        }
-
-        .example-description {
-            color: #666;
-            margin-bottom: 15px;
-            font-size: 14px;
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
             line-height: 1.5;
         }
+        .keyword { color: #c678dd; }
+        .string { color: #98c379; }
+        .function { color: #61afef; }
+        .comment { color: #5c6370; font-style: italic; }
+        .number { color: #d19a66; }
+        .class-name { color: #e5c07b; }
 
-        pre {
-            background: #1e1e1e;
-            border-radius: 4px;
-            padding: 15px;
-            overflow-x: auto;
-            margin-bottom: 15px;
+        .search-highlight {
+            background-color: #ffd700;
+            color: #000;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: bold;
         }
 
-        code {
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.4;
+        .section-card {
+            transition: all 0.3s ease;
         }
 
-        .hljs {
-            background: #1e1e1e !important;
-            color: #d4d4d4 !important;
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
 
-        .interactive-section {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 15px;
-        }
-
-        .interactive-section h4 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-            margin: 5px 0;
-            width: 100%;
-        }
-
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: background 0.3s;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background: #764ba2;
-        }
-
-        .result {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            padding: 12px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .result.error {
-            background: #ffebee;
-            border-left-color: #f44336;
-            color: #c62828;
-        }
-
-        .not-found {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-
-        .not-found h3 {
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        footer {
-            text-align: center;
-            color: white;
-            padding: 20px;
-            margin-top: 40px;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 30px 0;
-        }
-
-        .pagination button {
-            padding: 8px 12px;
-        }
-
-        .pagination button.active {
-            background: #764ba2;
-        }
-
-        .pagination button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-            .examples-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .search-box {
-                flex-direction: column;
-            }
+        .hidden-section {
+            display: none;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>LR9: Database & Scoring - Interactive Examples</h1>
-            <p class="subtitle">Интерактивные примеры кода с Prisma, Scoring, Admin endpoints</p>
-
-            <div class="search-box">
-                <input type="text" id="search" placeholder="Поиск по названию или коду...">
-            </div>
-
-            <div class="filter-tags">
-                <span class="tag active" data-filter="all">Все</span>
-                <span class="tag" data-filter="prisma">Prisma</span>
-                <span class="tag" data-filter="scoring">Scoring</span>
-                <span class="tag" data-filter="admin">Admin</span>
-                <span class="tag" data-filter="validation">Validation</span>
-                <span class="tag" data-filter="optimization">Optimization</span>
-            </div>
+<body class="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+                🚀 Hono Backend API
+            </h1>
+            <p class="text-xl text-white opacity-90">
+                Интерактивные примеры кода и упражнения
+            </p>
         </header>
 
-        <div id="examples" class="examples-grid"></div>
+        <!-- Search Bar -->
+        <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 mb-8">
+            <div class="flex items-center gap-4">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="🔍 Поиск по примерам (например: 'GET', 'POST', 'Prisma', 'JWT')..."
+                    class="flex-1 px-4 py-3 rounded-lg border-2 border-white/30 bg-white/20 text-white placeholder-white/60 focus:outline-none focus:border-white/60 focus:bg-white/30"
+                    oninput="searchCode()"
+                />
+                <button
+                    onclick="clearSearch()"
+                    class="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
+                >
+                    Очистить
+                </button>
+            </div>
+            <p class="text-white/70 text-sm mt-2">
+                Найдено примеров: <span id="searchCount" class="font-bold">0</span>
+            </p>
+        </div>
 
-        <div id="pagination" class="pagination"></div>
+        <!-- Navigation -->
+        <nav class="bg-white/10 backdrop-blur-md rounded-xl p-4 mb-8">
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="filterSection('all')" class="filter-btn active text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">Все</button>
+                <button onclick="filterSection('hono')" class="filter-btn text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">Hono</button>
+                <button onclick="filterSection('prisma')" class="filter-btn text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">Prisma</button>
+                <button onclick="filterSection('zod')" class="filter-btn text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">Zod</button>
+                <button onclick="filterSection('jwt')" class="filter-btn text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">JWT</button>
+                <button onclick="filterSection('middleware')" class="filter-btn text-white hover:bg-white/20 px-4 py-2 rounded-lg transition">Middleware</button>
+            </div>
+        </nav>
 
-        <div id="notFound" class="not-found" style="display: none;">
-            <h3>По вашему запросу ничего не найдено</h3>
-            <p>Попробуйте изменить фильтр или поисковый запрос</p>
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- HONO EXAMPLES -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🦁</span> Hono: Hello World
+                </h2>
+                <p class="text-gray-600 mb-3">Базовая структура приложения</p>
+                <div class="code-block searchable">
+<span class="keyword">import</span> { <span class="class-name">Hono</span> } <span class="keyword">from</span> <span class="string">'hono'</span>;
+
+<span class="keyword">const</span> <span class="function">app</span> = <span class="keyword">new</span> <span class="class-name">Hono</span>();
+
+<span class="function">app</span>.<span class="function">get</span>(<span class="string">'/'</span>, (<span class="function">c</span>) <span class="keyword">=></span> {
+  <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>({ <span class="string">message</span>: <span class="string">'Hello, World!'</span> });
+});
+
+<span class="keyword">export</span> <span class="keyword">default</span> {
+  <span class="string">port</span>: <span class="number">3000</span>,
+  <span class="string">fetch</span>: <span class="function">app</span>.<span class="string">fetch</span>,
+};
+                </div>
+            </div>
+
+            <!-- HONO CRUD -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🛣️</span> Hono: GET с параметром
+                </h2>
+                <p class="text-gray-600 mb-3">Получить ресурс по ID</p>
+                <div class="code-block searchable">
+<span class="keyword">app</span>.<span class="function">get</span>(<span class="string">'/api/users/:id'</span>, <span class="keyword">async</span> (<span class="function">c</span>) <span class="keyword">=></span> {
+  <span class="keyword">const</span> <span class="string">id</span> = <span class="function">c</span>.<span class="function">req</span>.<span class="function">param</span>(<span class="string">'id'</span>);
+
+  <span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">findUnique</span>({
+    where: { <span class="string">id</span> }
+  });
+
+  <span class="keyword">if</span> (!<span class="string">user</span>) {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Not found'</span> },
+      <span class="number">404</span>
+    );
+  }
+
+  <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(<span class="string">user</span>);
+});
+                </div>
+            </div>
+
+            <!-- HONO POST -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>📤</span> Hono: POST (создание)
+                </h2>
+                <p class="text-gray-600 mb-3">Создать новый ресурс</p>
+                <div class="code-block searchable">
+<span class="keyword">app</span>.<span class="function">post</span>(<span class="string">'/api/users'</span>, <span class="keyword">async</span> (<span class="function">c</span>) <span class="keyword">=></span> {
+  <span class="keyword">try</span> {
+    <span class="keyword">const</span> <span class="string">body</span> = <span class="keyword">await</span> <span class="function">c</span>.<span class="function">req</span>.<span class="function">json</span>();
+
+    <span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">create</span>({
+      <span class="string">data</span>: <span class="string">body</span>
+    });
+
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(<span class="string">user</span>, <span class="number">201</span>);
+  } <span class="keyword">catch</span> (<span class="string">error</span>) {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Invalid data'</span> },
+      <span class="number">400</span>
+    );
+  }
+});
+                </div>
+            </div>
+
+            <!-- HONO MIDDLEWARE -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono middleware">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>⚙️</span> Hono: Middleware
+                </h2>
+                <p class="text-gray-600 mb-3">CORS и логирование</p>
+                <div class="code-block searchable">
+<span class="keyword">import</span> { <span class="string">cors</span> } <span class="keyword">from</span> <span class="string">'hono/cors'</span>;
+<span class="keyword">import</span> { <span class="string">logger</span> } <span class="keyword">from</span> <span class="string">'hono/logger'</span>;
+
+<span class="keyword">app</span>.<span class="function">use</span>(<span class="string">'*'</span>, <span class="function">cors</span>());
+<span class="keyword">app</span>.<span class="function">use</span>(<span class="string">'*'</span>, <span class="function">logger</span>());
+
+<span class="keyword">app</span>.<span class="function">use</span>(<span class="string">'/api/protected/*'</span>, <span class="keyword">async</span> (<span class="string">c</span>, <span class="string">next</span>) <span class="keyword">=></span> {
+  <span class="comment">// Проверка аутентификации</span>
+  <span class="keyword">const</span> <span class="string">auth</span> = <span class="function">c</span>.<span class="function">req</span>.<span class="function">header</span>(<span class="string">'Authorization'</span>);
+  <span class="keyword">if</span> (!<span class="string">auth</span>) {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>({ <span class="string">error</span>: <span class="string">'Unauthorized'</span> }, <span class="number">401</span>);
+  }
+  <span class="keyword">await</span> <span class="function">next</span>();
+});
+                </div>
+            </div>
+
+            <!-- PRISMA SCHEMA -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section prisma">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🗄️</span> Prisma: Schema
+                </h2>
+                <p class="text-gray-600 mb-3">Определение моделей БД</p>
+                <div class="code-block searchable">
+<span class="keyword">model</span> <span class="class-name">User</span> {
+  <span class="string">id</span>        <span class="keyword">String</span>    <span class="number">@id</span> <span class="number">@default</span>(<span class="function">cuid</span>())
+  <span class="string">email</span>     <span class="keyword">String</span>    <span class="number">@unique</span>
+  <span class="string">name</span>      <span class="keyword">String</span>
+  <span class="string">createdAt</span> <span class="keyword">DateTime</span>  <span class="number">@default</span>(<span class="function">now</span>())
+
+  <span class="string">posts</span>     <span class="class-name">Post</span>[]
+  <span class="number">@@map</span>(<span class="string">"users"</span>)
+}
+
+<span class="keyword">model</span> <span class="class-name">Post</span> {
+  <span class="string">id</span>     <span class="keyword">String</span> <span class="number">@id</span> <span class="number">@default</span>(<span class="function">cuid</span>())
+  <span class="string">title</span>  <span class="keyword">String</span>
+  <span class="string">userId</span> <span class="keyword">String</span>
+  <span class="string">user</span>   <span class="class-name">User</span>   <span class="number">@relation</span>(<span class="string">fields</span>: [<span class="string">userId</span>], <span class="string">references</span>: [<span class="string">id</span>])
+}
+                </div>
+            </div>
+
+            <!-- PRISMA CRUD -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section prisma">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>📝</span> Prisma: CRUD операции
+                </h2>
+                <p class="text-gray-600 mb-3">Работа с данными</p>
+                <div class="code-block searchable">
+<span class="comment">// CREATE</span>
+<span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">create</span>({
+  <span class="string">data</span>: { <span class="string">email</span>, <span class="string">name</span> }
+});
+
+<span class="comment">// READ</span>
+<span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">findUnique</span>({
+  <span class="string">where</span>: { <span class="string">id</span> }
+});
+
+<span class="comment">// READ MANY</span>
+<span class="keyword">const</span> <span class="string">users</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">findMany</span>({
+  <span class="string">skip</span>: <span class="number">0</span>, <span class="string">take</span>: <span class="number">10</span>
+});
+
+<span class="comment">// UPDATE</span>
+<span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">update</span>({
+  <span class="string">where</span>: { <span class="string">id</span> },
+  <span class="string">data</span>: { <span class="string">name</span> }
+});
+
+<span class="comment">// DELETE</span>
+<span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">delete</span>({
+  <span class="string">where</span>: { <span class="string">id</span> }
+});
+                </div>
+            </div>
+
+            <!-- ZOD SCHEMA -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section zod">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>✅</span> Zod: Валидация
+                </h2>
+                <p class="text-gray-600 mb-3">Определение схем</p>
+                <div class="code-block searchable">
+<span class="keyword">import</span> { <span class="string">z</span> } <span class="keyword">from</span> <span class="string">'zod'</span>;
+
+<span class="keyword">const</span> <span class="class-name">CreateUserSchema</span> = <span class="function">z</span>.<span class="function">object</span>({
+  <span class="string">email</span>: <span class="function">z</span>.<span class="function">string</span>().<span class="function">email</span>(),
+  <span class="string">name</span>: <span class="function">z</span>.<span class="function">string</span>()
+    .<span class="function">min</span>(<span class="number">1</span>, <span class="string">'Required'</span>)
+    .<span class="function">max</span>(<span class="number">100</span>, <span class="string">'Too long'</span>),
+  <span class="string">age</span>: <span class="function">z</span>.<span class="function">number</span>()
+    .<span class="function">int</span>()
+    .<span class="function">positive</span>()
+    .<span class="function">optional</span>(),
+});
+
+<span class="keyword">type</span> <span class="class-name">CreateUserInput</span> = <span class="function">z</span>.<span class="function">infer</span>&lt;<span class="keyword">typeof</span> <span class="class-name">CreateUserSchema</span>&gt;;
+                </div>
+            </div>
+
+            <!-- ZOD VALIDATION -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section zod">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🔍</span> Zod: Использование
+                </h2>
+                <p class="text-gray-600 mb-3">Валидация данных</p>
+                <div class="code-block searchable">
+<span class="keyword">try</span> {
+  <span class="keyword">const</span> <span class="string">data</span> = <span class="class-name">CreateUserSchema</span>.<span class="function">parse</span>(<span class="string">body</span>);
+  <span class="comment">// data типизирован как CreateUserInput</span>
+  <span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">create</span>({ <span class="string">data</span> });
+  <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(<span class="string">user</span>, <span class="number">201</span>);
+} <span class="keyword">catch</span> (<span class="string">error</span>) {
+  <span class="keyword">if</span> (<span class="string">error</span> <span class="keyword">instanceof</span> <span class="class-name">z</span>.<span class="class-name">ZodError</span>) {
+    <span class="keyword">const</span> <span class="string">messages</span> = <span class="string">error</span>.<span class="string">errors</span>
+      .<span class="function">map</span>(<span class="string">e</span> <span class="keyword">=></span> `${<span class="string">e</span>.<span class="string">path</span>}: ${<span class="string">e</span>.<span class="string">message</span>}`);
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>({ <span class="string">error</span>: <span class="string">messages</span> }, <span class="number">400</span>);
+  }
+}
+                </div>
+            </div>
+
+            <!-- JWT CREATE -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section jwt">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🔐</span> JWT: Создание токена
+                </h2>
+                <p class="text-gray-600 mb-3">Генерация JWT</p>
+                <div class="code-block searchable">
+<span class="keyword">import</span> <span class="string">jwt</span> <span class="keyword">from</span> <span class="string">'jsonwebtoken'</span>;
+
+<span class="keyword">function</span> <span class="function">createToken</span>(<span class="string">userId</span>: <span class="keyword">string</span>) {
+  <span class="keyword">return</span> <span class="string">jwt</span>.<span class="function">sign</span>(
+    { <span class="string">userId</span>, <span class="string">role</span>: <span class="string">'student'</span> },
+    <span class="string">process</span>.<span class="string">env</span>.<span class="string">JWT_SECRET</span>!,
+    { <span class="string">expiresIn</span>: <span class="string">'7d'</span> }
+  );
+}
+
+<span class="comment">// Использование</span>
+<span class="keyword">const</span> <span class="string">token</span> = <span class="function">createToken</span>(<span class="string">'user_123'</span>);
+<span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>({ <span class="string">token</span> });
+                </div>
+            </div>
+
+            <!-- JWT VERIFY -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section jwt middleware">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🔑</span> JWT: Проверка токена
+                </h2>
+                <p class="text-gray-600 mb-3">Middleware для защиты</p>
+                <div class="code-block searchable">
+<span class="keyword">export</span> <span class="keyword">async</span> <span class="keyword">function</span> <span class="function">authMiddleware</span>(<span class="string">c</span>, <span class="string">next</span>) {
+  <span class="keyword">const</span> <span class="string">auth</span> = <span class="function">c</span>.<span class="function">req</span>.<span class="function">header</span>(<span class="string">'Authorization'</span>);
+  <span class="keyword">const</span> <span class="string">token</span> = <span class="string">auth</span>?.<span class="function">replace</span>(<span class="string">'Bearer '</span>, <span class="string">''</span>);
+
+  <span class="keyword">if</span> (!<span class="string">token</span>) {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Unauthorized'</span> },
+      <span class="number">401</span>
+    );
+  }
+
+  <span class="keyword">try</span> {
+    <span class="keyword">const</span> <span class="string">payload</span> = <span class="string">jwt</span>.<span class="function">verify</span>(<span class="string">token</span>, <span class="string">process</span>.<span class="string">env</span>.<span class="string">JWT_SECRET</span>!);
+    <span class="function">c</span>.<span class="function">set</span>(<span class="string">'userId'</span>, <span class="string">payload</span>.<span class="string">userId</span>);
+    <span class="keyword">await</span> <span class="function">next</span>();
+  } <span class="keyword">catch</span> {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Invalid token'</span> },
+      <span class="number">401</span>
+    );
+  }
+}
+
+<span class="comment">// Использование</span>
+<span class="function">app</span>.<span class="function">use</span>(<span class="string">'/api/protected/*'</span>, <span class="function">authMiddleware</span>);
+                </div>
+            </div>
+
+            <!-- ERROR HANDLING -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>⚠️</span> Обработка ошибок
+                </h2>
+                <p class="text-gray-600 mb-3">Try-catch и статус коды</p>
+                <div class="code-block searchable">
+<span class="keyword">app</span>.<span class="function">post</span>(<span class="string">'/api/users'</span>, <span class="keyword">async</span> (<span class="function">c</span>) <span class="keyword">=></span> {
+  <span class="keyword">try</span> {
+    <span class="keyword">const</span> <span class="string">body</span> = <span class="keyword">await</span> <span class="function">c</span>.<span class="function">req</span>.<span class="function">json</span>();
+    <span class="keyword">const</span> <span class="string">data</span> = <span class="class-name">UserSchema</span>.<span class="function">parse</span>(<span class="string">body</span>);
+    <span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">createUser</span>(<span class="string">data</span>);
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(<span class="string">user</span>, <span class="number">201</span>);
+  } <span class="keyword">catch</span> (<span class="string">error</span>: <span class="keyword">any</span>) {
+    <span class="keyword">if</span> (<span class="string">error</span> <span class="keyword">instanceof</span> <span class="class-name">z</span>.<span class="class-name">ZodError</span>) {
+      <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+        { <span class="string">error</span>: <span class="string">'Validation failed'</span> },
+        <span class="number">400</span>
+      );
+    }
+    <span class="keyword">if</span> (<span class="string">error</span>.<span class="string">code</span> === <span class="string">'P2002'</span>) {
+      <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+        { <span class="string">error</span>: <span class="string">'Email already exists'</span> },
+        <span class="number">409</span>
+      );
+    }
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Internal server error'</span> },
+      <span class="number">500</span>
+    );
+  }
+});
+
+<span class="comment">// Глобальный обработчик</span>
+<span class="function">app</span>.<span class="function">onError</span>((<span class="string">err</span>, <span class="string">c</span>) <span class="keyword">=></span> {
+  <span class="function">console</span>.<span class="function">error</span>(<span class="string">err</span>);
+  <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+    { <span class="string">error</span>: <span class="string">'Internal server error'</span> },
+    <span class="number">500</span>
+  );
+});
+                </div>
+            </div>
+
+            <!-- FULL EXAMPLE -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono prisma zod jwt">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🎯</span> Полный пример: Login endpoint
+                </h2>
+                <p class="text-gray-600 mb-3">Интеграция всех компонентов</p>
+                <div class="code-block searchable">
+<span class="keyword">const</span> <span class="class-name">LoginSchema</span> = <span class="function">z</span>.<span class="function">object</span>({
+  <span class="string">email</span>: <span class="function">z</span>.<span class="function">string</span>().<span class="function">email</span>(),
+  <span class="string">password</span>: <span class="function">z</span>.<span class="function">string</span>().<span class="function">min</span>(<span class="number">8</span>),
+});
+
+<span class="function">app</span>.<span class="function">post</span>(<span class="string">'/api/auth/login'</span>, <span class="keyword">async</span> (<span class="function">c</span>) <span class="keyword">=></span> {
+  <span class="keyword">try</span> {
+    <span class="keyword">const</span> <span class="string">body</span> = <span class="keyword">await</span> <span class="function">c</span>.<span class="function">req</span>.<span class="function">json</span>();
+    <span class="keyword">const</span> { <span class="string">email</span>, <span class="string">password</span> } = <span class="class-name">LoginSchema</span>.<span class="function">parse</span>(<span class="string">body</span>);
+
+    <span class="keyword">const</span> <span class="string">user</span> = <span class="keyword">await</span> <span class="function">prisma</span>.<span class="string">user</span>.<span class="function">findUnique</span>({ <span class="string">where</span>: { <span class="string">email</span> } });
+    <span class="keyword">if</span> (!<span class="string">user</span>) {
+      <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+        { <span class="string">error</span>: <span class="string">'Invalid credentials'</span> },
+        <span class="number">401</span>
+      );
+    }
+
+    <span class="keyword">const</span> <span class="string">token</span> = <span class="function">createToken</span>(<span class="string">user</span>.<span class="string">id</span>, <span class="string">user</span>.<span class="string">role</span>);
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>({ <span class="string">token</span>, <span class="string">user</span> });
+  } <span class="keyword">catch</span> (<span class="string">error</span>) {
+    <span class="keyword">return</span> <span class="function">c</span>.<span class="function">json</span>(
+      { <span class="string">error</span>: <span class="string">'Invalid request'</span> },
+      <span class="number">400</span>
+    );
+  }
+});
+                </div>
+            </div>
+
+            <!-- TESTING ENDPOINT -->
+            <div class="section-card bg-white rounded-2xl p-6 shadow-2xl section hono">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                    <span>🧪</span> Тестирование: curl примеры
+                </h2>
+                <p class="text-gray-600 mb-3">Как проверить endpoints</p>
+                <div class="code-block searchable">
+<span class="comment"># GET - получить пользователя</span>
+curl http://localhost:3000/api/users/123
+
+<span class="comment"># POST - создать пользователя</span>
+curl -X POST http://localhost:3000/api/users \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"email":"test@example.com","name":"Test"}'</span>
+
+<span class="comment"># POST - login и получить токен</span>
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"email":"user@example.com","password":"password123"}'</span> \
+  | jq -r <span class="string">'.token'</span>)
+
+<span class="comment"># GET - защищенный endpoint с токеном</span>
+curl http://localhost:3000/api/profile \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span>
+
+<span class="comment"># DELETE - удалить пользователя</span>
+curl -X DELETE http://localhost:3000/api/users/123 \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <footer>
-        Generated for LR9 • Backend Database & Scoring Logic
-    </footer>
-
     <script>
-        const examples = [
-            {
-                id: 1,
-                title: "One-to-Many Relationship",
-                category: "prisma",
-                description: "Связь один User к много Sessions",
-                code: `// Schema
-model User {
-  id       String    @id @default(cuid())
-  sessions Session[]
-}
+        let allCards = document.querySelectorAll('.section-card');
 
-model Session {
-  id     String @id @default(cuid())
-  userId String
-  user   User @relation(fields: [userId], references: [id])
-}
+        function searchCode() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let count = 0;
 
-// Query
-const user = await prisma.user.findUnique({
-  where: { id: "user1" },
-  include: { sessions: true }
-});`
-            },
-            {
-                id: 2,
-                title: "Many-to-Many Relationship",
-                category: "prisma",
-                description: "Question имеет много Tags и наоборот",
-                code: `model Question {
-  id   String @id @default(cuid())
-  tags Tag[]
-}
+            allCards.forEach(card => {
+                const codeBlocks = card.querySelectorAll('.code-block');
+                let found = false;
 
-model Tag {
-  id        String @id @default(cuid())
-  name      String
-  questions Question[]
-}
+                codeBlocks.forEach(block => {
+                    const text = block.textContent.toLowerCase();
+                    if (text.includes(query)) {
+                        found = true;
+                    }
+                });
 
-// Query
-const q = await prisma.question.findUnique({
-  where: { id: "q1" },
-  include: { tags: true }
-});
+                if (query === '' || found) {
+                    card.style.display = 'block';
+                    if (found && query !== '') count++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
 
-// Create with relations
-await prisma.question.create({
-  data: {
-    text: "...",
-    tags: {
-      connect: [{ id: "tag1" }, { id: "tag2" }]
-    }
-  }
-});`
-            },
-            {
-                id: 3,
-                title: "Transactions for Atomicity",
-                category: "prisma",
-                description: "Гарантировать что все операции выполняются вместе или ничего",
-                code: `async function submitSession(sessionId: string) {
-  const result = await prisma.$transaction(async (tx) => {
-    // Все операции должны выполниться или откатиться
-    const answers = await tx.answer.findMany({
-      where: { sessionId }
-    });
+            document.getElementById('searchCount').textContent = count;
+        }
 
-    const score = answers.reduce(
-      (sum, a) => sum + (a.score || 0), 0
-    );
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchCode();
+        }
 
-    const session = await tx.session.update({
-      where: { id: sessionId },
-      data: { score, status: "completed" }
-    });
+        function filterSection(section) {
+            const query = section === 'all' ? '' : section;
 
-    return session;
-  });
-  return result;
-}`
-            },
-            {
-                id: 4,
-                title: "Performance: Select Fields",
-                category: "optimization",
-                description: "Загружать только нужные поля вместо всех",
-                code: `// ❌ Неоптимально - загружает всё
-const sessions = await prisma.session.findMany();
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
 
-// ✅ Оптимально - загружает только нужное
-const sessions = await prisma.session.findMany({
-  select: {
-    id: true,
-    score: true,
-    status: true,
-    user: {
-      select: { name: true, email: true }
-    }
-  }
-});
+            // Filter cards
+            allCards.forEach(card => {
+                if (query === '') {
+                    card.style.display = 'block';
+                } else {
+                    card.classList.contains(query) ?
+                        card.style.display = 'block' :
+                        card.style.display = 'none';
+                }
+            });
+        }
 
-// Это может ускорить query в 10 раз!`
-            },
-            {
-                id: 5,
-                title: "Avoid N+1 Problem with Include",
-                category: "optimization",
-                description: "Использовать include для загрузки связей одним query",
-                code: `// ❌ N+1 problem - 10,001 query!
-const sessions = await prisma.session.findMany();
-for (const session of sessions) {
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId }
-  });
-}
-
-// ✅ Правильно - 1 query со связью
-const sessions = await prisma.session.findMany({
-  include: {
-    user: true
-  }
-});`
-            },
-            {
-                id: 6,
-                title: "Pagination for Large Datasets",
-                category: "optimization",
-                description: "Не загружайте всё сразу, используйте pagination",
-                code: `const page = 1;
-const limit = 20;
-
-const sessions = await prisma.session.findMany({
-  skip: (page - 1) * limit,
-  take: limit,
-  orderBy: { createdAt: 'desc' },
-  select: { id: true, score: true }
-});
-
-// Получить общее количество
-const total = await prisma.session.count();
-const pages = Math.ceil(total / limit);
-
-return {
-  data: sessions,
-  pagination: { page, limit, total, pages }
-};`
-            },
-            {
-                id: 7,
-                title: "Multiple-Select Scoring",
-                category: "scoring",
-                description: "Подсчитать баллы за multiple-select вопрос",
-                code: `function scoreMultipleSelect(
-  correctAnswers: string[],
-  studentAnswers: string[]
-): number {
-  let score = 0;
-
-  for (const answer of studentAnswers) {
-    if (correctAnswers.includes(answer)) {
-      score += 1; // правильный ответ
-    } else {
-      score -= 0.5; // неправильный ответ
-    }
-  }
-
-  return Math.max(0, score);
-}
-
-// Примеры
-scoreMultipleSelect(["A", "C", "D"], ["A", "C"]); // 2
-scoreMultipleSelect(["A", "C", "D"], ["A", "B", "C"]); // 1.5
-scoreMultipleSelect(["A", "C", "D"], ["B", "E"]); // 0`
-            },
-            {
-                id: 8,
-                title: "Essay Scoring with Rubric",
-                category: "scoring",
-                description: "Оценить essay ответ по рубрике (критериям)",
-                code: `interface Grade {
-  criterion: string;
-  points: number;
-}
-
-interface RubricCriterion {
-  name: string;
-  maxPoints: number;
-}
-
-function scoreEssay(
-  grades: Grade[],
-  rubric: RubricCriterion[]
-): number {
-  let total = 0;
-
-  for (const grade of grades) {
-    const criterion = rubric.find(r => r.name === grade.criterion);
-    if (!criterion) continue;
-
-    const capped = Math.min(grade.points, criterion.maxPoints);
-    total += capped;
-  }
-
-  return total;
-}
-
-// Пример
-const rubric = [
-  { name: "Clarity", maxPoints: 3 },
-  { name: "Examples", maxPoints: 2 }
-];
-const grades = [
-  { criterion: "Clarity", points: 3 },
-  { criterion: "Examples", points: 1 }
-];
-scoreEssay(grades, rubric); // 4 из 5`
-            },
-            {
-                id: 9,
-                title: "Session Start and Submit",
-                category: "admin",
-                description: "Начало и завершение квиз-сессии",
-                code: `// Start session
-async function startSession(
-  userId: string,
-  totalQuestions: number
-) {
-  return await prisma.session.create({
-    data: {
-      userId,
-      status: "in_progress",
-      totalQuestions,
-      expiresAt: new Date(
-        Date.now() + 60 * 60 * 1000 // 1 час
-      )
-    }
-  });
-}
-
-// Submit session
-async function submitSession(sessionId: string) {
-  return await prisma.$transaction(async (tx) => {
-    const session = await tx.session.findUnique({
-      where: { id: sessionId },
-      include: { answers: true }
-    });
-
-    if (session.expiresAt < new Date()) {
-      throw new Error("Session expired");
-    }
-
-    const score = session.answers
-      .filter(a => a.score !== null)
-      .reduce((sum, a) => sum + (a.score || 0), 0);
-
-    return await tx.session.update({
-      where: { id: sessionId },
-      data: { status: "completed", score }
-    });
-  });
-}`
-            },
-            {
-                id: 10,
-                title: "Admin: Grade Essay Answers",
-                category: "admin",
-                description: "API endpoint для преподавателя чтобы оценить essay",
-                code: `app.post('/api/admin/answers/:id/grade', async (c) => {
-  const { id } = c.req.param();
-  const { score, feedback } = await c.req.json();
-
-  const updated = await prisma.$transaction(async (tx) => {
-    // Обновить ответ с оценкой
-    const answer = await tx.answer.update({
-      where: { id },
-      data: { score, feedback }
-    });
-
-    // Проверить что все ответы в сессии проверены
-    const session = await tx.session.findUnique({
-      where: { id: answer.sessionId },
-      include: { answers: true }
-    });
-
-    const allGraded = session.answers.every(
-      a => a.score !== null
-    );
-
-    // Если все - обновить финальный score
-    if (allGraded) {
-      const total = session.answers.reduce(
-        (sum, a) => sum + (a.score || 0),
-        0
-      );
-      await tx.session.update({
-        where: { id: answer.sessionId },
-        data: { score: total, status: "completed" }
-      });
-    }
-
-    return answer;
-  });
-
-  return c.json({ answer: updated });
-});`
-            },
-            {
-                id: 11,
-                title: "Admin: Student Statistics",
-                category: "admin",
-                description: "Получить статистику студента",
-                code: `app.get('/api/admin/students/:userId/stats', async (c) => {
-  const { userId } = c.req.param();
-
-  const sessions = await prisma.session.findMany({
-    where: { userId },
-    select: {
-      id: true,
-      score: true,
-      status: true,
-      startedAt: true,
-      _count: { select: { answers: true } }
-    },
-    orderBy: { startedAt: 'desc' }
-  });
-
-  const avgScore = sessions.length
-    ? sessions.reduce((sum, s) => sum + (s.score || 0), 0) /
-      sessions.length
-    : 0;
-
-  return c.json({
-    userId,
-    totalSessions: sessions.length,
-    averageScore: Math.round(avgScore),
-    sessions
-  });
-});`
-            },
-            {
-                id: 12,
-                title: "Batch Create Questions",
-                category: "optimization",
-                description: "Создать много вопросов одним query",
-                code: `// ❌ Неоптимально - 1000 queries
-for (const questionData of questions) {
-  await prisma.question.create({
-    data: questionData
-  });
-}
-
-// ✅ Оптимально - 1 query
-await prisma.question.createMany({
-  data: [
-    {
-      text: "Question 1",
-      type: "multiple-select",
-      options: ["A", "B", "C", "D"],
-      correctAnswers: ["A", "C"]
-    },
-    {
-      text: "Question 2",
-      type: "essay"
-    }
-    // ... ещё вопросы
-  ],
-  skipDuplicates: true
-});`
-            },
-            {
-                id: 13,
-                title: "Validation with Zod",
-                category: "validation",
-                description: "Валидировать входные данные для ответа",
-                code: `import { z } from 'zod';
-
-const AnswerSchema = z.object({
-  questionId: z.string().uuid(),
-  userAnswer: z.union([
-    z.array(z.string()),  // multiple-select
-    z.string()             // essay
-  ]),
-  sessionId: z.string().uuid()
-});
-
-app.post('/api/sessions/:id/answers', async (c) => {
-  const body = await c.req.json();
-  const parsed = AnswerSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({
-      error: parsed.error.flatten()
-    }, 400);
-  }
-
-  const validData = parsed.data;
-  // ... дальше обработка с уверенностью что данные правильные
-});`
-            },
-            {
-                id: 14,
-                title: "Database Indexes",
-                category: "optimization",
-                description: "Добавить индексы для быстрого поиска",
-                code: `model Session {
-  id        String    @id @default(cuid())
-  userId    String
-  status    String
-  createdAt DateTime  @default(now())
-
-  // Одиночные индексы
-  @@index([userId])      // для поиска по userId
-  @@index([status])      // для поиска по статусу
-
-  // Комбинированный индекс
-  @@index([userId, status]) // для поиска по обоим
-}
-
-model Answer {
-  id        String @id @default(cuid())
-  sessionId String
-  score     Int?
-
-  // Индекс для быстрого поиска и сортировки
-  @@index([sessionId])
-  @@index([sessionId, score(sort: Desc)])
-}`
-            }
-        ];
-
-        let currentFilter = 'all';
-        let currentPage = 1;
-        const ITEMS_PER_PAGE = 6;
-
-        function filterExamples() {
-            let filtered = examples;
-
-            // Filter by category
-            if (currentFilter !== 'all') {
-                filtered = filtered.filter(e => e.category === currentFilter);
-            }
-
-            // Filter by search
-            const searchTerm = document.getElementById('search').value.toLowerCase();
-            if (searchTerm) {
-                filtered = filtered.filter(e =>
-                    e.title.toLowerCase().includes(searchTerm) ||
-                    e.description.toLowerCase().includes(searchTerm) ||
-                    e.code.toLowerCase().includes(searchTerm)
+        // Make filter-btn styling work
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b =>
+                    b.classList.remove('bg-white', 'text-blue-600')
                 );
-            }
-
-            return filtered;
-        }
-
-        function renderExamples() {
-            const filtered = filterExamples();
-            const total = filtered.length;
-            const pages = Math.ceil(total / ITEMS_PER_PAGE);
-            const start = (currentPage - 1) * ITEMS_PER_PAGE;
-            const end = start + ITEMS_PER_PAGE;
-            const pageItems = filtered.slice(start, end);
-
-            const container = document.getElementById('examples');
-            container.innerHTML = '';
-
-            if (pageItems.length === 0) {
-                document.getElementById('notFound').style.display = 'block';
-                document.getElementById('pagination').innerHTML = '';
-                return;
-            }
-
-            document.getElementById('notFound').style.display = 'none';
-
-            pageItems.forEach(example => {
-                const card = document.createElement('div');
-                card.className = 'example-card';
-                card.innerHTML = `
-                    <div class="example-header">
-                        <div class="example-title">${example.title}</div>
-                        <span class="example-category">${example.category.toUpperCase()}</span>
-                    </div>
-                    <div class="example-body">
-                        <p class="example-description">${example.description}</p>
-                        <pre><code class="language-typescript">${escapeHtml(example.code)}</code></pre>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-
-            hljs.highlightAll();
-            renderPagination(pages);
-        }
-
-        function renderPagination(pages) {
-            const container = document.getElementById('pagination');
-            if (pages <= 1) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = '';
-            for (let i = 1; i <= pages; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i;
-                if (i === currentPage) btn.className = 'active';
-                btn.onclick = () => {
-                    currentPage = i;
-                    renderExamples();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
-                container.appendChild(btn);
-            }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        document.getElementById('search').addEventListener('input', () => {
-            currentPage = 1;
-            renderExamples();
-        });
-
-        document.querySelectorAll('.tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-                tag.classList.add('active');
-                currentFilter = tag.dataset.filter;
-                currentPage = 1;
-                renderExamples();
+                this.classList.add('bg-white', 'text-blue-600');
             });
         });
-
-        // Initial render
-        renderExamples();
     </script>
 </body>
 </html>

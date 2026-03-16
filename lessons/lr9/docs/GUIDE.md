@@ -1,1439 +1,787 @@
-# LR9: Database & Business Logic - Scoring Algorithm
-## Полное теоретическое руководство
+# Backend API Development Guide - Полное руководство
+
+Подробное руководство по разработке REST API на **Hono + Prisma + TypeScript**.
 
 ---
 
-## Оглавление
+## Содержание
 
-0. [Project Architecture](#project-architecture)
-1. [Введение](#введение)
-2. [Advanced Prisma](#advanced-prisma)
-3. [Scoring Algorithm](#scoring-algorithm)
-4. [Database Optimization](#database-optimization)
-5. [Admin endpoints](#admin-endpoints)
-6. [Best Practices](#best-practices)
-7. [Архитектура: Services Layer](#архитектура-services-layer)
+1. [Что такое Backend](#что-такое-backend)
+2. [Архитектура REST API](#архитектура-rest-api)
+3. [Hono Framework](#hono-framework)
+4. [Prisma ORM](#prisma-orm)
+5. [Валидация Zod](#валидация-zod)
+6. [JWT Аутентификация](#jwt-аутентификация)
+7. [Обработка ошибок](#обработка-ошибок)
+8. [Best Practices](#best-practices)
 
 ---
 
-## Project Architecture
+## Что такое Backend
 
-**Смотрите слайды LR9 (слайды 4-7) для подробного объяснения!**
+### Определение
 
-Когда логика вашего backend'а растёт, нужна правильная архитектура. На LR9 мы используем **Service Layer Pattern**.
+**Backend** - это серверная часть приложения, которая:
+- Обрабатывает HTTP запросы от клиентов
+- Работает с базой данных
+- Применяет бизнес-логику
+- Возвращает JSON ответы
 
-### Структура проекта
+### Frontend vs Backend
 
 ```
-quiz-backend/
-├── src/
-│   ├── index.ts              # Entry point
-│   ├── routes/               # HTTP handlers (req/res)
-│   │   ├── auth.ts           # Аутентификация
-│   │   ├── sessions.ts       # Сессии квиза
-│   │   └── admin.ts          # Admin endpoints
-│   ├── services/             # Бизнес-логика
-│   │   ├── scoringService.ts # Подсчёт баллов
-│   │   ├── sessionService.ts # Управление сессиями
-│   │   └── index.ts          # Инициализация сервисов
-│   ├── middleware/           # JWT, валидация
-│   └── utils/                # Helpers
-├── prisma/
-│   └── schema.prisma         # Database models
+Frontend (React)          Backend (Hono)
+    ↓                          ↓
+┌─────────────────────────────────────┐
+│    HTTP запрос (GET /api/users)    │
+├─────────────────────────────────────┤
+│    Обработка на сервере             │
+│    - Валидация                      │
+│    - Проверка прав                  │
+│    - Запрос в БД                    │
+├─────────────────────────────────────┤
+│    HTTP ответ (200 OK + JSON)       │
+└─────────────────────────────────────┘
+    ↑                          ↑
+Frontend получает           Backend
+JSON и обновляет UI        отправляет
 ```
 
-### Разделение ответственности
+### Зачем нужен Backend
 
-- **routes/** — HTTP слой (получить запрос, вернуть ответ, status codes)
-- **services/** — Бизнес-логика (scoring, session management, validation)
-- **middleware/** — Защита и валидация
-- **utils/** — Вспомогательные функции
+1. **Безопасность**
+   - Секреты (DB пароли, API ключи) на сервере
+   - Клиент не может подделать данные
+   - Контроль доступа (авторизация)
 
-### Почему это важно?
+2. **Масштабируемость**
+   - Кеширование на сервере
+   - Обработка большого трафика
+   - Распределение нагрузки
 
-1. **Тестируемость**: Можно тестировать сервисы без HTTP запросов
-2. **Переиспользование**: Один сервис может использоваться в разных routes
-3. **Читаемость**: Route handlers остаются простыми и понятными
-4. **Масштабируемость**: Легче добавлять новый функционал
+3. **Консистентность данных**
+   - Единая база истины
+   - Валидация на сервере
+   - Транзакции в БД
+
+4. **Логика**
+   - Сложные вычисления
+   - Работа с расписанием
+   - Интеграции с внешними сервисами
 
 ---
 
-## Введение
+## Архитектура REST API
 
-После прохождения LR8 у вас есть базовый backend с CRUD операциями. Но это только начало.
+### REST Принципы
 
-**На LR9 вы углубляетесь в:**
-- **Business Logic** — правила которые делают приложение полезным
-- **Data Consistency** — гарантия что данные всегда корректны
-- **Performance** — как писать быстрые queries
-- **Admin Tools** — как давать контроль пользователям
+**REST** (Representational State Transfer) - архитектурный стиль для веб-сервисов.
 
-### Контекст: Quiz Application
+**Ключевые принципы:**
 
-Мы используем Quiz приложение как пример. Основная бизнес-логика:
+1. **Ресурсы** - любые сущности (users, posts, comments)
+   ```
+   /api/users          # Коллекция пользователей
+   /api/users/:id      # Конкретный пользователь
+   /api/posts/:id/comments  # Комментарии поста
+   ```
 
-1. Студент начинает сессию квиза
-2. Студент отвечает на вопросы (разных типов)
-3. Система считает баллы
-4. Преподаватель может проверить essay ответы
-5. Система выдаёт результаты
+2. **HTTP методы** - стандартные операции
+   ```
+   GET    /api/users       # Получить всех
+   POST   /api/users       # Создать
+   GET    /api/users/:id   # Получить одного
+   PUT    /api/users/:id   # Обновить
+   DELETE /api/users/:id   # Удалить
+   ```
 
-Каждый из этих шагов требует правильной логики и оптимизации.
+3. **Stateless** - сервер не хранит состояние
+   - Каждый запрос самодостаточен
+   - Для идентификации используются токены (JWT)
 
----
+4. **JSON** - стандартный формат обмена
+   ```json
+   { "id": "123", "name": "Alice", "email": "alice@example.com" }
+   ```
 
-## Advanced Prisma
+### HTTP Статус коды
 
-### Relationships (Связи между таблицами)
+```
+2xx - Успех
+  200 OK                  # Успешный запрос
+  201 Created             # Ресурс создан
+  204 No Content          # Успех без данных
 
-#### Одна таблица → Много связанных
+4xx - Ошибка клиента
+  400 Bad Request         # Некорректные данные
+  401 Unauthorized        # Нет аутентификации
+  403 Forbidden           # Нет прав доступа
+  404 Not Found           # Ресурс не найден
+  409 Conflict            # Конфликт (например, дубликат email)
+  422 Unprocessable       # Ошибки валидации
 
-**One-to-Many (Один-ко-многим)** — самая частая связь.
-
-Пример: Один User может иметь много Sessions.
-
-**Schema:**
-
-```prisma
-model User {
-  id       String    @id @default(cuid())
-  name     String
-  email    String    @unique
-
-  // Связь: один User -> много Sessions
-  sessions Session[]
-
-  @@map("users")
-}
-
-model Session {
-  id        String    @id @default(cuid())
-  userId    String    // Foreign key
-  user      User      @relation(fields: [userId], references: [id])
-
-  // Связь: много Sessions -> один User
-  @@index([userId])
-
-  @@map("sessions")
-}
+5xx - Ошибка сервера
+  500 Internal Error      # Неожиданная ошибка
+  503 Service Unavailable # Сервис недоступен
 ```
 
-**Что произошло:**
-
-- Prisma создала foreign key в таблице `sessions`
-- Добавила индекс на `userId` для быстрого поиска
-- Теперь вы можете делать queries со связями:
+### Структура API ответа
 
 ```typescript
-// Получить юзера со всеми его сессиями
-const user = await prisma.user.findUnique({
-  where: { id: "user1" },
-  include: { sessions: true }
-});
-// user.sessions // массив всех сессий для этого юзера
-
-// Получить сессию с информацией о юзере
-const session = await prisma.session.findUnique({
-  where: { id: "session1" },
-  include: { user: true }
-});
-// session.user // объект User
-```
-
-**Важное отличие:**
-
-```typescript
-// ❌ НЕПРАВИЛЬНО - не загружает related данные
-const session = await prisma.session.findUnique({
-  where: { id: "session1" }
-});
-// session.user // undefined!
-// session.userId // есть, это ID
-
-// ✅ ПРАВИЛЬНО - загружает связь
-const session = await prisma.session.findUnique({
-  where: { id: "session1" },
-  include: { user: true }
-});
-// session.user // объект User
-```
-
-#### Много таблиц → Много связанных
-
-**Many-to-Many (Много-ко-многим)** — например, Question имеет много Tags, и каждый Tag может быть у много Questions.
-
-**Schema:**
-
-```prisma
-model Question {
-  id        String   @id @default(cuid())
-  text      String
-  type      String   // "multiple-select", "essay"
-
-  // Связь: Question -> много Tags
-  tags      Tag[]
-
-  @@map("questions")
-}
-
-model Tag {
-  id        String   @id @default(cuid())
-  name      String   @unique
-
-  // Связь: Tag -> много Questions
-  questions Question[]
-
-  @@map("tags")
-}
-```
-
-Prisma **автоматически** создаст таблицу `_QuestionToTag` (связь many-to-many):
-
-```
-_QuestionToTag
-├─ questionId (foreign key -> questions.id)
-└─ tagId (foreign key -> tags.id)
-```
-
-**Использование:**
-
-```typescript
-// Создать Question с Tags
-const q = await prisma.question.create({
+// ✅ Успешный ответ
+{
+  status: 200,
   data: {
-    text: "What is React?",
-    type: "multiple-select",
-    tags: {
-      connect: [
-        { id: "tag1" },  // подключить существующий Tag
-        { id: "tag2" }
-      ]
-    }
+    id: "123",
+    name: "Alice",
+    email: "alice@example.com"
   }
-});
-
-// Получить Question со всеми Tags
-const q = await prisma.question.findUnique({
-  where: { id: "q1" },
-  include: { tags: true }
-});
-// q.tags // массив Tags
-
-// Получить все Questions с конкретным Tag
-const questions = await prisma.question.findMany({
-  where: {
-    tags: {
-      some: { id: "tag1" }  // "some" = есть хотя бы один
-    }
-  }
-});
-```
-
-### Transactions (Транзакции)
-
-**Транзакция** — это последовательность операций которые либо ВСЕ выполняются, либо НИЧЕГО не выполняется.
-
-#### Зачем нужны?
-
-Пример без транзакций (ПЛОХО):
-
-```typescript
-// Без гарантий atomicity
-async function submitSession(sessionId: string) {
-  // Шаг 1: Считаем баллы
-  const answers = await prisma.answer.findMany({ where: { sessionId } });
-  const score = answers.reduce((sum, a) => sum + (a.score || 0), 0);
-
-  // ОШИБКА МОЖЕТ БЫТЬ ЗДЕСЬ (например, сетевая ошибка)
-
-  // Шаг 2: Обновляем Session
-  await prisma.session.update({
-    where: { id: sessionId },
-    data: { score, status: "completed" }
-  });
-
-  // Если на шаге между 1 и 2 произойдёт ошибка,
-  // мы потеряем calculated score!
-}
-```
-
-**Решение: Транзакция**
-
-```typescript
-async function submitSession(sessionId: string) {
-  // Либо ВСЕ операции выполняются, либо НИЧЕГО
-  const result = await prisma.$transaction(async (tx) => {
-    // Все операции внутри используют `tx` вместо `prisma`
-    const answers = await tx.answer.findMany({ where: { sessionId } });
-    const score = answers.reduce((sum, a) => sum + (a.score || 0), 0);
-
-    const session = await tx.session.update({
-      where: { id: sessionId },
-      data: { score, status: "completed" }
-    });
-
-    return session;
-  });
-
-  return result;
-}
-```
-
-**Гарантии Prisma:**
-
-- ✅ Если любая операция упадёт — **ВСЕ откатываются**
-- ✅ Никакая другая операция не может прерваться между шагами
-- ✅ Данные всегда консистентны
-
-#### Когда использовать?
-
-```typescript
-// ✅ Используйте транзакции
-- Критичные операции (платежи, оценки)
-- Операции которые должны быть атомарные
-- Когда несколько таблиц должны измениться вместе
-
-// ❌ Не нужны транзакции
-- SELECT-only операции
-- Независимые updates
-- Простые создания записей
-```
-
-### Performance: Select vs Include
-
-#### Select — выбрать только нужные поля
-
-**Problem:**
-
-```typescript
-// ❌ Загружает ВСЕ поля
-const sessions = await prisma.session.findMany();
-// session = {
-//   id, userId, status, score, createdAt,
-//   updatedAt, expiresAt, currentQuestionIndex, totalQuestions
-// }
-
-// Если каждый сессия 500 байт, и их 10,000 — это 5 MB!
-```
-
-**Solution:**
-
-```typescript
-// ✅ Загружает только нужные поля
-const sessions = await prisma.session.findMany({
-  select: {
-    id: true,
-    score: true,
-    status: true
-  }
-});
-// session = { id, score, status }  // 50 байт вместо 500!
-```
-
-#### Include — загрузить связанные данные
-
-```typescript
-// ❌ Плохо: N+1 problem
-const sessions = await prisma.session.findMany();
-for (const session of sessions) {
-  // На каждую сессию — отдельный query!
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId }
-  });
-  console.log(user.name);
-}
-// 1 + 10,000 = 10,001 query! Очень медленно.
-
-// ✅ Правильно: один query со связью
-const sessions = await prisma.session.findMany({
-  include: {
-    user: true  // загружает пользователя в одном query
-  }
-});
-for (const session of sessions) {
-  console.log(session.user.name);
-}
-// 1 query вместо 10,001!
-```
-
-#### Комбинирование Select + Include
-
-```typescript
-const sessions = await prisma.session.findMany({
-  select: {
-    id: true,
-    score: true,
-    user: {
-      select: {
-        name: true,
-        email: true
-        // НЕ загружаем password, tokens и т.д.
-      }
-    }
-  }
-});
-```
-
-### Batch Operations
-
-Когда нужно создать или обновить много записей.
-
-```typescript
-// ❌ Плохо: 1000 отдельных queries
-for (const questionData of questions) {
-  await prisma.question.create({ data: questionData });
 }
 
-// ✅ Правильно: 1 query
-await prisma.question.createMany({
-  data: questions,
-  skipDuplicates: true // пропустить дубликаты
-});
+// ❌ Ошибка валидации
+{
+  status: 400,
+  error: "Validation failed",
+  details: [
+    { field: "email", message: "Invalid email format" },
+    { field: "name", message: "Name is required" }
+  ]
+}
 
-// Также для обновления
-await prisma.answer.updateMany({
-  where: { sessionId: "session1" },
-  data: { status: "graded" }
-});
+// ❌ Ошибка аутентификации
+{
+  status: 401,
+  error: "Unauthorized",
+  message: "Missing or invalid token"
+}
 ```
 
 ---
 
-## Scoring Algorithm
+## Hono Framework
 
-### Multiple-Select Questions
+### Что такое Hono
 
-**Multiple-select** — вопрос где может быть несколько правильных ответов, и студент выбирает несколько вариантов.
+**Hono** - современный TypeScript-first фреймворк для Node.js и Workers.
 
-#### Правила подсчёта
+**Преимущества:**
+- Очень быстрый (оптимизированный маршрутизатор)
+- Типизированный с TypeScript
+- Небольшой размер (~25KB)
+- Простой и интуитивный API
+- Хорошо документирован
 
-Существует несколько стратегий. Вот наиболее справедливая:
-
-```
-За каждый правильно выбранный ответ: +1 балл
-За каждый неправильно выбранный ответ: -0.5 балла
-Минимум: 0 баллов
-```
-
-#### Примеры
-
-**Пример 1: Студент выбрал частично правильно**
-
-```
-Правильные ответы: A, C, D (3 правильных)
-Студент выбрал: A, C (2 правильных, 0 неправильных)
-
-Расчёт:
-- A: правильно → +1
-- C: правильно → +1
-- Остальные не выбраны
-
-Сумма: 1 + 1 = 2 балла из 3 максимум
-```
-
-**Пример 2: Студент выбрал часть правильно, часть неправильно**
-
-```
-Правильные ответы: A, C, D
-Студент выбрал: A, B, C (2 правильных, 1 неправильный)
-
-Расчёт:
-- A: правильно → +1
-- B: неправильно → -0.5
-- C: правильно → +1
-
-Сумма: 1 - 0.5 + 1 = 1.5 баллов
-```
-
-**Пример 3: Студент выбрал только неправильно**
-
-```
-Правильные ответы: A, C, D
-Студент выбрал: B, E (0 правильных, 2 неправильных)
-
-Расчёт:
-- B: неправильно → -0.5
-- E: неправильно → -0.5
-
-Сумма: -0.5 - 0.5 = -1, но минимум 0 → 0 баллов
-```
-
-#### Реализация
+### Базовая структура
 
 ```typescript
-function scoreMultipleSelect(
-  correctAnswers: string[],
-  studentAnswers: string[]
-): number {
-  let score = 0;
+import { Hono } from 'hono';
 
-  // За каждый выбранный ответ
-  for (const answer of studentAnswers) {
-    if (correctAnswers.includes(answer)) {
-      score += 1; // правильный
-    } else {
-      score -= 0.5; // неправильный
-    }
+const app = new Hono();
+
+// Middleware
+app.use('*', logger());
+app.use('*', cors());
+
+// Routes
+app.get('/api/users', async (c) => {
+  const users = await db.findAll();
+  return c.json({ users });
+});
+
+// Error handling
+app.onError((err, c) => {
+  return c.json({ error: err.message }, 500);
+});
+
+export default {
+  port: 3000,
+  fetch: app.fetch
+};
+```
+
+### Контекст (Context)
+
+Параметр `c` в обработчике - это **контекст запроса**.
+
+```typescript
+app.get('/api/users/:id', async (c) => {
+  // c.req - объект запроса
+  const id = c.req.param('id');           // Параметр маршрута
+  const query = c.req.query('filter');    // Query параметр
+  const body = await c.req.json();        // Body JSON
+  const header = c.req.header('Authorization'); // Заголовок
+
+  // c.set/c.get - хранилище данных (middleware → handler)
+  c.set('userId', '123');
+  const userId = c.get('userId');
+
+  // c.json/c.text/c.html - отправить ответ
+  return c.json({ data }, 200);
+});
+```
+
+### Middleware
+
+Middleware - это функции, которые выполняются для каждого запроса.
+
+```typescript
+// Встроенный middleware
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+
+app.use('*', cors());
+app.use('*', logger());
+
+// Кастомный middleware
+app.use(async (c, next) => {
+  console.log(`${c.req.method} ${c.req.path}`);
+  const start = Date.now();
+
+  await next(); // Передать управление дальше
+
+  const duration = Date.now() - start;
+  console.log(`Finished in ${duration}ms`);
+});
+
+// Conditional middleware
+app.use('/api/protected/*', authMiddleware);
+
+// Роутер с собственным middleware
+const router = new Hono();
+router.use(authMiddleware);
+router.get('/me', (c) => c.json({ userId: c.get('userId') }));
+app.route('/api', router);
+```
+
+---
+
+## Prisma ORM
+
+### Что такое ORM
+
+**ORM** (Object-Relational Mapping) - инструмент для работы с БД через объекты.
+
+```
+                   БД (SQL)
+                      ↑
+                      ↓
+         Prisma Client (TypeScript)
+                      ↑
+                      ↓
+              Ваш код (JavaScript)
+```
+
+**Преимущества Prisma:**
+- Type-safe запросы
+- Auto-complete в IDE
+- Миграции и версионирование
+- Удобный синтаксис
+
+### Schema файл
+
+Файл `prisma/schema.prisma` описывает структуру БД.
+
+```prisma
+// Источник данных
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Генератор клиента
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Модели (таблицы)
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  role      UserRole  @default(USER)
+  createdAt DateTime  @default(now())
+
+  posts     Post[]      // Связь один-ко-многим
+  @@map("users")       // Имя таблицы в БД
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@map("posts")
+}
+```
+
+### CRUD операции
+
+```typescript
+import { prisma } from './db/client';
+
+// CREATE
+const user = await prisma.user.create({
+  data: { email: 'alice@example.com', name: 'Alice' }
+});
+
+// READ one
+const user = await prisma.user.findUnique({
+  where: { id: '123' }
+});
+
+// READ many
+const users = await prisma.user.findMany({
+  where: { role: 'ADMIN' },
+  orderBy: { createdAt: 'desc' },
+  skip: 0,
+  take: 10,
+  select: { id: true, name: true, email: true } // Выбрать поля
+});
+
+// UPDATE
+const user = await prisma.user.update({
+  where: { id: '123' },
+  data: { name: 'Alice Updated' }
+});
+
+// DELETE
+await prisma.user.delete({
+  where: { id: '123' }
+});
+
+// Связанные данные
+const user = await prisma.user.findUnique({
+  where: { id: '123' },
+  include: { posts: true } // Загрузить посты пользователя
+});
+```
+
+### Миграции
+
+Миграции - это версионирование схемы БД.
+
+```bash
+# Создать миграцию после изменения schema.prisma
+npx prisma migrate dev --name add_user_role
+
+# Применить миграции в production
+npx prisma migrate deploy
+
+# Просмотреть БД визуально
+npx prisma studio
+
+# Сбросить БД (ТОЛЬКО для разработки!)
+npx prisma migrate reset
+```
+
+---
+
+## Валидация Zod
+
+### Зачем нужна валидация
+
+```typescript
+// ❌ Без валидации
+app.post('/api/users', async (c) => {
+  const body = await c.req.json();
+  // body может содержать что угодно!
+  // { name: 123 } - не строка!
+  // { email: null } - не email!
+  const user = await prisma.user.create({ data: body });
+});
+
+// ✅ С валидацией
+app.post('/api/users', async (c) => {
+  const body = await c.req.json();
+  const data = UserSchema.parse(body); // Проверяет тип и формат
+  const user = await prisma.user.create({ data });
+});
+```
+
+### Определение схем
+
+```typescript
+import { z } from 'zod';
+
+// Простая схема
+const UserSchema = z.object({
+  email: z.string().email('Invalid email'),
+  name: z.string().min(1, 'Required').max(100),
+  age: z.number().int().positive().optional()
+});
+
+// Сложная схема
+const CreatePostSchema = z.object({
+  title: z.string().min(1).max(200),
+  content: z.string().min(10),
+  tags: z.array(z.string()).min(1).max(5),
+  published: z.boolean().default(false),
+  category: z.enum(['tech', 'life', 'other'])
+});
+
+// Трансформация данных
+const TrimmedUserSchema = z.object({
+  email: z.string().email().toLowerCase(),
+  name: z.string().trim()
+});
+
+// Извлечение TypeScript типа
+type CreateUserInput = z.infer<typeof UserSchema>;
+// Автоматически: { email: string, name: string, age?: number }
+```
+
+### Обработка ошибок
+
+```typescript
+try {
+  const data = UserSchema.parse(body);
+  // data типизирован как { email: string, name: string, age?: number }
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    // Ошибки валидации
+    error.errors.forEach(e => {
+      console.log(`Field: ${e.path}, Message: ${e.message}`);
+    });
+    return c.json({
+      error: 'Validation failed',
+      details: error.errors
+    }, 400);
   }
+}
+```
 
-  // Минимум 0 баллов
-  return Math.max(0, score);
+---
+
+## JWT Аутентификация
+
+### Что такое JWT
+
+**JWT** (JSON Web Token) - стандарт для передачи информации между сервером и клиентом.
+
+**Структура токена:**
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJ1c2VySWQiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ.
+TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ
+
+Header.Payload.Signature
+```
+
+**Преимущества:**
+- Stateless (не нужно хранить сессию на сервере)
+- Безопасный (подписан)
+- Стандартный (работает везде)
+- Компактный (маленький размер)
+
+### Генерация и проверка
+
+```typescript
+import jwt from 'jsonwebtoken';
+
+const SECRET = process.env.JWT_SECRET || 'secret';
+
+// Создать токен
+function createToken(userId: string, role: string = 'user') {
+  return jwt.sign(
+    { userId, role },
+    SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+// Проверить токен
+function verifyToken(token: string) {
+  try {
+    return jwt.verify(token, SECRET);
+  } catch (error) {
+    return null;
+  }
 }
 
 // Использование
-const score = scoreMultipleSelect(
-  ["A", "C", "D"],
-  ["A", "B", "C"]
-);
-// score = 1.5
+const token = createToken('user_123', 'admin');
+const payload = verifyToken(token);
+// payload = { userId: 'user_123', role: 'admin', iat: 1234, exp: 5678 }
 ```
 
-#### Нормализация к максимуму
-
-Если вопрос стоит например 10 баллов, нужно нормализовать:
+### Middleware для аутентификации
 
 ```typescript
-function scoreMultipleSelectNormalized(
-  correctAnswers: string[],
-  studentAnswers: string[],
-  maxPoints: number = 10
-): number {
-  let rawScore = 0;
+async function authMiddleware(c: Context, next: Next) {
+  const authHeader = c.req.header('Authorization');
 
-  for (const answer of studentAnswers) {
-    rawScore += correctAnswers.includes(answer) ? 1 : -0.5;
+  if (!authHeader) {
+    return c.json({ error: 'Missing Authorization header' }, 401);
   }
 
-  // rawScore может быть от 0 до correctAnswers.length
-  // Нормализуем к maxPoints
-  const maxRawScore = correctAnswers.length;
-  const normalized = (rawScore / maxRawScore) * maxPoints;
+  const token = authHeader.replace('Bearer ', '');
+  const payload = verifyToken(token);
 
-  // Убедиться что в пределах [0, maxPoints]
-  return Math.max(0, Math.min(maxPoints, normalized));
-}
-```
-
-### Essay Questions
-
-**Essay** (развёрнутые текстовые ответы) не могут быть оценены автоматически.
-
-#### Rubric-based Scoring
-
-**Rubric** (рубрика) — это набор критериев оценки.
-
-**Пример рубрики для вопроса "Объясни как работает React":**
-
-```json
-{
-  "criteria": [
-    {
-      "name": "Understanding of React",
-      "description": "Student explains what React is and its purpose",
-      "maxPoints": 3
-    },
-    {
-      "name": "Components and JSX",
-      "description": "Student explains components and JSX syntax",
-      "maxPoints": 3
-    },
-    {
-      "name": "State and Props",
-      "description": "Student explains state and props concepts",
-      "maxPoints": 2
-    },
-    {
-      "name": "Code Examples",
-      "description": "Student provides working code examples",
-      "maxPoints": 2
-    }
-  ]
-}
-```
-
-#### Процесс оценивания
-
-Преподаватель читает ответ и выставляет баллы по каждому критерию:
-
-```typescript
-interface Grade {
-  criterion: string;
-  points: number;
-  feedback?: string;
-}
-
-// Преподаватель выставляет
-const grades: Grade[] = [
-  { criterion: "Understanding of React", points: 3, feedback: "Excellent explanation" },
-  { criterion: "Components and JSX", points: 2, feedback: "Good, but missing some details" },
-  { criterion: "State and Props", points: 1, feedback: "Incomplete" },
-  { criterion: "Code Examples", points: 0, feedback: "No examples provided" }
-];
-
-// Финальный score = 3 + 2 + 1 + 0 = 6 из 10
-```
-
-#### Реализация
-
-```typescript
-interface Rubric {
-  criterion: string;
-  maxPoints: number;
-}
-
-function scoreEssay(
-  grades: Grade[],
-  rubric: Rubric[]
-): number {
-  let totalScore = 0;
-
-  for (const grade of grades) {
-    const criterion = rubric.find(r => r.criterion === grade.criterion);
-    if (!criterion) continue;
-
-    // Убедиться что баллы не превышают максимум
-    const points = Math.min(grade.points, criterion.maxPoints);
-    totalScore += points;
+  if (!payload) {
+    return c.json({ error: 'Invalid token' }, 401);
   }
 
-  return totalScore;
-}
-```
+  // Сохранить в контексте для использования в обработчике
+  c.set('userId', payload.userId);
+  c.set('role', payload.role);
 
-### Session Management
-
-**Session** — объект который отслеживает прогресс студента в квизе.
-
-#### Состояния Session
-
-```
-START → in_progress → SUBMIT → completed
-        ↓
-        TIMEOUT → expired
-```
-
-#### Model в Prisma
-
-```prisma
-model Session {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-
-  // Статус
-  status          String    @default("in_progress") // "in_progress", "completed", "expired"
-
-  // Сроки
-  startedAt       DateTime  @default(now())
-  expiresAt       DateTime  // время когда квиз автоматически завершается
-
-  // Результаты
-  score           Int?      // null пока не завершена, или есть unchecked essay answers
-
-  // Связь к ответам
-  answers         Answer[]
-
-  @@index([userId])
-  @@index([status])
-
-  @@map("sessions")
+  await next();
 }
 
-model Answer {
-  id          String    @id @default(cuid())
-  sessionId   String
-  session     Session   @relation(fields: [sessionId], references: [id])
-  questionId  String
-  question    Question  @relation(fields: [questionId], references: [id])
+// Использование
+app.use('/api/protected/*', authMiddleware);
 
-  // Ответ студента
-  userAnswer  Json      // может быть массив (multiple-select) или текст (essay)
-
-  // Score
-  score       Int?      // null = не проверено (особенно для essay)
-  feedback    String?   // комментарий преподавателя
-
-  createdAt   DateTime  @default(now())
-
-  @@index([sessionId])
-  @@index([questionId])
-
-  @@map("answers")
-}
-```
-
-#### Жизненный цикл
-
-**Начало:**
-
-```typescript
-async function startSession(userId: string, quizId: string) {
-  // Получить все вопросы для этого квиза
-  const questions = await prisma.question.findMany({
-    where: { quizId }
-  });
-
-  // Создать сессию
-  return await prisma.session.create({
-    data: {
-      userId,
-      status: "in_progress",
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 60 минут
-      quizId
-    }
-  });
-}
-```
-
-**Отправка ответа:**
-
-```typescript
-async function submitAnswer(
-  sessionId: string,
-  questionId: string,
-  userAnswer: any
-) {
-  // Проверить что сессия ещё активна
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId }
-  });
-
-  if (session.status !== "in_progress") {
-    throw new Error("Session is not active");
-  }
-
-  if (session.expiresAt < new Date()) {
-    // Автоматически завершить сессию
-    await prisma.session.update({
-      where: { id: sessionId },
-      data: { status: "expired" }
-    });
-    throw new Error("Session expired");
-  }
-
-  // Получить вопрос
-  const question = await prisma.question.findUnique({
-    where: { id: questionId }
-  });
-
-  // Считаем score если возможно
-  let score = null;
-  if (question.type === "multiple-select") {
-    score = scoreMultipleSelect(
-      question.correctAnswers as string[],
-      userAnswer as string[]
-    );
-  }
-  // Для essay: score остаётся null (ждёт проверки)
-
-  // Сохраняем ответ
-  return await prisma.answer.create({
-    data: {
-      sessionId,
-      questionId,
-      userAnswer,
-      score
-    }
-  });
-}
-```
-
-**Завершение сессии:**
-
-```typescript
-async function submitSession(sessionId: string) {
-  const result = await prisma.$transaction(async (tx) => {
-    // Получить сессию со всеми ответами
-    const session = await tx.session.findUnique({
-      where: { id: sessionId },
-      include: { answers: true }
-    });
-
-    // Проверить что сессия всё ещё активна
-    if (session.status !== "in_progress") {
-      throw new Error("Session is not in progress");
-    }
-
-    if (session.expiresAt < new Date()) {
-      throw new Error("Session expired");
-    }
-
-    // Считаем финальный score (только ответы которые проверены)
-    const score = session.answers
-      .filter(a => a.score !== null)
-      .reduce((sum, a) => sum + (a.score || 0), 0);
-
-    // Обновляем сессию
-    return await tx.session.update({
-      where: { id: sessionId },
-      data: {
-        status: "completed",
-        score
-      }
-    });
-  });
-
-  return result;
-}
-```
-
----
-
-## Database Optimization
-
-### Индексы
-
-**Индекс** — это структура БД которая ускоряет поиск.
-
-```prisma
-model Session {
-  id        String  @id @default(cuid())
-  userId    String
-  status    String
-  createdAt DateTime @default(now())
-
-  // Одиночные индексы
-  @@index([userId])     // fast lookup by userId
-  @@index([status])     // fast lookup by status
-
-  // Комбинированный индекс
-  @@index([userId, status]) // fast lookup by both
-}
-```
-
-**Когда добавлять индексы:**
-
-```
-✅ Часто используемые в WHERE условиях
-✅ Foreign keys (автоматически от Prisma)
-✅ Поля используемые для сортировки (ORDER BY)
-✅ Комбинирующие поля (userId + status)
-
-❌ Не нужны индексы для каждого поля!
-❌ Индексы замедляют создание/обновление
-```
-
-### Пагинация
-
-Не загружайте всё сразу!
-
-```typescript
-// ❌ Плохо
-const sessions = await prisma.session.findMany();
-// Если миллион сессий — ждать долго и много памяти
-
-// ✅ Правильно
-const page = 1;
-const limit = 20;
-
-const sessions = await prisma.session.findMany({
-  skip: (page - 1) * limit,  // пропустить записи
-  take: limit,               // взять 20
-  orderBy: { createdAt: 'desc' }
+app.get('/api/protected/me', (c) => {
+  const userId = c.get('userId');
+  return c.json({ userId });
 });
-
-// Можно также получить количество
-const total = await prisma.session.count();
-const pages = Math.ceil(total / limit);
 ```
 
-### Query Optimization
+### Роль пользователя
 
 ```typescript
-// ❌ Неоптимально
-const sessions = await prisma.session.findMany({
-  include: {
-    answers: {
-      include: {
-        question: {
-          include: {
-            category: true
-          }
-        }
-      }
-    },
-    user: true
-  }
-});
-// Слишком много связей, очень медленно
+async function requireAdmin(c: Context, next: Next) {
+  const role = c.get('role');
 
-// ✅ Оптимально
-const sessions = await prisma.session.findMany({
-  select: {
-    id: true,
-    score: true,
-    status: true,
-    user: {
-      select: { name: true, email: true }
-    }
-  },
-  // answers НЕ загружаем здесь
-  // Загружаем отдельно если нужно
-});
-
-// Если нужны answers
-const answers = await prisma.answer.findMany({
-  where: { sessionId: sessions[0].id },
-  select: {
-    id: true,
-    userAnswer: true,
-    score: true
+  if (role !== 'admin') {
+    return c.json({ error: 'Admin access required' }, 403);
   }
+
+  await next();
+}
+
+app.use('/api/admin/*', authMiddleware, requireAdmin);
+
+app.delete('/api/admin/users/:id', (c) => {
+  // Только admin может удалять
+  const id = c.req.param('id');
+  return c.json({ deleted: id });
 });
 ```
 
 ---
 
-## Admin endpoints
+## Обработка ошибок
 
-### Управление вопросами (CRUD)
+### Try-Catch паттерн
 
 ```typescript
-// CREATE - создать вопрос
-app.post('/api/admin/questions', async (c) => {
-  const body = await c.req.json();
-  const question = await prisma.question.create({
-    data: body
-  });
-  return c.json({ question }, 201);
-});
-
-// READ - получить все вопросы
-app.get('/api/admin/questions', async (c) => {
-  const questions = await prisma.question.findMany({
-    select: {
-      id: true,
-      text: true,
-      type: true,
-      _count: { select: { answers: true } }
+app.post('/api/users', async (c) => {
+  try {
+    const body = await c.req.json();
+    const data = UserSchema.parse(body);
+    const user = await prisma.user.create({ data });
+    return c.json(user, 201);
+  } catch (error) {
+    // Обработать ошибки по типам
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed' }, 400);
     }
-  });
-  return c.json({ questions });
-});
-
-// UPDATE - обновить вопрос
-app.put('/api/admin/questions/:id', async (c) => {
-  const { id } = c.req.param();
-  const body = await c.req.json();
-  const question = await prisma.question.update({
-    where: { id },
-    data: body
-  });
-  return c.json({ question });
-});
-
-// DELETE - удалить вопрос
-app.delete('/api/admin/questions/:id', async (c) => {
-  const { id } = c.req.param();
-  await prisma.question.delete({ where: { id } });
-  return c.json({ success: true });
+    if (error instanceof Error && error.code === 'P2002') {
+      return c.json({ error: 'Email already exists' }, 409);
+    }
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 ```
 
-### Оценивание Essay ответов
+### Глобальный обработчик
 
 ```typescript
-// Получить unchecked essay answers
-app.get('/api/admin/grading/pending', async (c) => {
-  const answers = await prisma.answer.findMany({
-    where: {
-      score: null,
-      question: { type: "essay" }
-    },
-    include: {
-      question: true,
-      session: {
-        include: { user: true }
-      }
-    }
-  });
-  return c.json({ answers });
-});
+app.onError((err, c) => {
+  console.error(err);
 
-// Выставить оценку
-app.post('/api/admin/answers/:id/grade', async (c) => {
-  const { id } = c.req.param();
-  const { score, feedback } = await c.req.json();
-
-  const result = await prisma.$transaction(async (tx) => {
-    // Обновить ответ
-    const answer = await tx.answer.update({
-      where: { id },
-      data: { score, feedback }
-    });
-
-    // Проверить что все ответы в сессии проверены
-    const session = await tx.session.findUnique({
-      where: { id: answer.sessionId },
-      include: { answers: true }
-    });
-
-    const allGraded = session.answers.every(a => a.score !== null);
-
-    // Если все проверены — обновить финальный score
-    if (allGraded) {
-      const totalScore = session.answers.reduce(
-        (sum, a) => sum + (a.score || 0),
-        0
-      );
-      await tx.session.update({
-        where: { id: answer.sessionId },
-        data: {
-          score: totalScore,
-          status: "completed"
-        }
-      });
-    }
-
-    return answer;
-  });
-
-  return c.json({ answer: result });
-});
-```
-
-### Reporting
-
-```typescript
-// Статистика студента
-app.get('/api/admin/students/:userId/stats', async (c) => {
-  const { userId } = c.req.param();
-
-  const sessions = await prisma.session.findMany({
-    where: { userId },
-    select: {
-      id: true,
-      score: true,
-      status: true,
-      startedAt: true,
-      _count: { select: { answers: true } }
-    },
-    orderBy: { startedAt: 'desc' }
-  });
-
-  const avgScore = sessions.length > 0
-    ? sessions.reduce((sum, s) => sum + (s.score || 0), 0) / sessions.length
-    : 0;
+  if (err instanceof z.ZodError) {
+    return c.json({ error: 'Validation error' }, 400);
+  }
 
   return c.json({
-    userId,
-    totalSessions: sessions.length,
-    averageScore: Math.round(avgScore),
-    sessions
-  });
+    error: 'Internal server error',
+    message: err.message
+  }, 500);
 });
+```
 
-// Лидерборд
-app.get('/api/admin/leaderboard', async (c) => {
-  const results = await prisma.$queryRaw`
-    SELECT
-      u.id,
-      u.name,
-      AVG(s.score) as average_score,
-      COUNT(s.id) as session_count
-    FROM users u
-    LEFT JOIN sessions s ON u.id = s."userId"
-    GROUP BY u.id
-    ORDER BY average_score DESC
-    LIMIT 10
-  `;
+### Коды ошибок Prisma
 
-  return c.json({ results });
-});
+```typescript
+try {
+  await prisma.user.delete({ where: { id } });
+} catch (error: any) {
+  if (error.code === 'P2025') {
+    // Record not found
+    return c.json({ error: 'User not found' }, 404);
+  }
+  if (error.code === 'P2002') {
+    // Unique constraint violation
+    return c.json({ error: 'Email already exists' }, 409);
+  }
+  if (error.code === 'P2003') {
+    // Foreign key constraint failed
+    return c.json({ error: 'Invalid reference' }, 400);
+  }
+}
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Валидация всё и везде
+### 1. Структура проекта
+
+```
+backend/
+├── src/
+│   ├── handlers/           # Route handlers
+│   │   ├── auth.ts
+│   │   ├── users.ts
+│   │   └── posts.ts
+│   ├── services/           # Бизнес-логика
+│   │   ├── authService.ts
+│   │   └── userService.ts
+│   ├── middleware/         # Middleware функции
+│   │   ├── auth.ts
+│   │   └── validation.ts
+│   ├── db/
+│   │   └── client.ts       # Prisma клиент
+│   ├── types/              # TypeScript типы
+│   │   └── index.ts
+│   └── index.ts            # Main app
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── .env
+├── package.json
+└── tsconfig.json
+```
+
+### 2. Разделение ответственности
 
 ```typescript
-import { z } from 'zod';
-
-const AnswerSchema = z.object({
-  questionId: z.string().uuid(),
-  userAnswer: z.union([
-    z.array(z.string()),  // multiple-select
-    z.string()             // essay
-  ])
-});
-
-app.post('/api/sessions/:id/answers', async (c) => {
+// ❌ Плохо - вся логика в обработчике
+app.post('/api/users', async (c) => {
   const body = await c.req.json();
-  const parsed = AnswerSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: parsed.error.flatten() }, 400);
-  }
-
-  // ... обработка
-});
-```
-
-### 2. Использовать transactions для критичных операций
-
-```typescript
-// Не используйте transaction для простых reads
-const user = await prisma.user.findUnique({ where: { id: "u1" } });
-
-// Используйте для операций которые должны быть атомарные
-const result = await prisma.$transaction(async (tx) => {
-  const session = await tx.session.update({ ... });
-  const answers = await tx.answer.updateMany({ ... });
-  return { session, answers };
-});
-```
-
-### 3. Оптимизировать queries
-
-```typescript
-// Выбирайте нужные поля
-select: { id: true, name: true }
-
-// Избегайте N+1 problem
-include: { related: true }
-
-// Пагинируйте для больших наборов
-skip: (page - 1) * limit,
-take: limit
-```
-
-### 4. Правильно обрабатывать ошибки
-
-```typescript
-try {
-  const result = await prisma.$transaction(/* ... */);
-} catch (error) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    // Обработать известные ошибки
-    if (error.code === 'P2025') {
-      return c.json({ error: "Not found" }, 404);
-    }
-  }
-  throw error;
-}
-```
-
-### 5. Логировать для отладки
-
-```typescript
-// Включить логирование queries
-const prisma = new PrismaClient({
-  log: [
-    { emit: 'stdout', level: 'query' },
-    { emit: 'stdout', level: 'error' }
-  ]
-});
-```
-
----
-
-## Резюме
-
-**Advanced Prisma:**
-- Relationships для связей между таблицами
-- Transactions для atomic операций
-- Performance optimization через select/include
-- Batch operations для множественных изменений
-
-**Scoring:**
-- Multiple-select: правильные ответы vs неправильные
-- Essay: rubric-based scoring преподавателем
-- Session management: жизненный цикл квиза
-
-**Admin:**
-- CRUD для управления данными
-- Оценивание и feedback
-- Reporting и статистика
-
-**Optimization:**
-- Индексы на часто используемые поля
-- Пагинация для больших наборов
-- Select/include для быстрых queries
-- Transactions для безопасности данных
-
----
-
-## Архитектура: Services Layer
-
-### Зачем нужен services слой
-
-На LR8 вы создали свой первый backend. Была простая структура: **routes** → **Prisma** → **БД**.
-
-На LR9 логика усложняется. Появляется **бизнес-логика** (scoring algorithm, session management). Если всю эту логику писать в route handlers, они станут очень большими и сложными.
-
-**Пример: Без services (плохо)**
-
-```typescript
-// ❌ Вся логика в route handler - 50 строк!
-app.post('/api/sessions/:id/submit', async (c) => {
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    include: { answers: true }
+  const hashedPassword = await bcrypt.hash(body.password, 10);
+  const user = await prisma.user.create({
+    data: { email: body.email, name: body.name, password: hashedPassword }
   });
-
-  if (!session) {
-    return c.json({ error: 'Not found' }, 404);
-  }
-
-  if (session.expiresAt < new Date()) {
-    return c.json({ error: 'Expired' }, 400);
-  }
-
-  // Считаем score
-  const score = session.answers
-    .filter(a => a.score !== null)
-    .reduce((sum, a) => sum + (a.score || 0), 0);
-
-  // Обновляем сессию
-  const updated = await prisma.session.update({
-    where: { id: sessionId },
-    data: { status: 'completed', score }
-  });
-
-  // Может быть письмо студенту
-  // await sendEmail(...)
-
-  return c.json({ session: updated });
+  return c.json(user);
 });
-```
 
-**Проблемы:**
-- Трудно читать (много кода в одном месте)
-- Невозможно протестировать (зависит от HTTP)
-- Нельзя переиспользовать (логика привязана к этому route)
-- Если логика нужна в другом место — копируем код!
-
-### Решение: Services Layer
-
-Services слой — это класс который содержит бизнес-логику, независимо от HTTP.
-
-**Пример: С services (хорошо)**
-
-```typescript
-// src/services/sessionService.ts
-export class SessionService {
-  async submitSession(sessionId: string) {
-    return await prisma.$transaction(async (tx) => {
-      const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: { answers: true }
-      });
-
-      // Все проверки и логика в одном месте
-      if (!session) {
-        throw new Error('Not found');
-      }
-
-      if (session.expiresAt < new Date()) {
-        throw new Error('Expired');
-      }
-
-      const totalScore = this.calculateScore(session.answers);
-
-      return await tx.session.update({
-        where: { id: sessionId },
-        data: { status: 'completed', score: totalScore }
-      });
-    });
-  }
-
-  private calculateScore(answers: Answer[]): number {
-    return answers
-      .filter(a => a.score !== null)
-      .reduce((sum, a) => sum + (a.score || 0), 0);
-  }
+// ✅ Хорошо - логика в сервис
+async function createUser(data: CreateUserInput) {
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  return prisma.user.create({
+    data: { email: data.email, name: data.name, password: hashedPassword }
+  });
 }
 
-export const sessionService = new SessionService();
+app.post('/api/users', async (c) => {
+  const body = await c.req.json();
+  const data = CreateUserSchema.parse(body);
+  const user = await createUser(data);
+  return c.json(user, 201);
+});
 ```
 
-```typescript
-// src/routes/sessions.ts
-app.post('/api/sessions/:id/submit', authMiddleware, async (c) => {
-  const { id } = c.req.param();
+### 3. Консистентные ответы
 
+```typescript
+// ✅ Структурированные ответы
+const sendSuccess = (c: Context, data: any, status = 200) => {
+  return c.json({ success: true, data }, status);
+};
+
+const sendError = (c: Context, message: string, status = 400) => {
+  return c.json({ success: false, error: message }, status);
+};
+
+// Использование
+app.post('/api/users', async (c) => {
   try {
-    const session = await sessionService.submitSession(id);
-    return c.json({ session }); // Просто!
+    const user = await createUser(data);
+    return sendSuccess(c, user, 201);
   } catch (error) {
-    return c.json({ error: error.message }, 400);
+    return sendError(c, 'Failed to create user', 500);
   }
 });
 ```
 
-**Преимущества:**
-- ✅ **Читаемость** — каждый слой делает одно
-- ✅ **Тестируемость** — можно тестировать сервис отдельно
-- ✅ **Переиспользование** — сервис вызывают из разных routes
-- ✅ **Масштабируемость** — легко добавлять новую логику
-
-### Архитектура backend'а
-
-```
-HTTP Request
-    ↓
-  Router (routes/)
-    ↓ (парсит request, вызывает сервис)
-  Service (services/)
-    ↓ (бизнес-логика, транзакции)
-  Database (Prisma)
-    ↓
-Database (SQLite)
-```
-
-Каждый слой имеет свою ответственность:
-
-| Слой | Ответственность | Пример |
-|------|----------------|--------|
-| **routes/** | HTTP (валидация, статусы) | `POST /api/sessions/:id/submit` |
-| **services/** | Бизнес-логика | `sessionService.submitSession(id)` |
-| **middleware/** | Авторизация | `authMiddleware`, `requireAdmin` |
-| **utils/** | Вспомогательные функции | `jwt.ts`, `validation.ts` |
-| **db/** | Prisma клиент | `prisma.ts` |
-
-### Когда использовать services
-
-**✅ Нужен service когда:**
-
-1. **Сложная бизнес-логика**
-   ```typescript
-   // ✅ Scoring algorithm - сложно!
-   export class ScoringService {
-     scoreMultipleSelect(correctAnswers, studentAnswers) { ... }
-     scoreEssay(grades, rubric) { ... }
-   }
-   ```
-
-2. **Несколько шагов (transaction)**
-   ```typescript
-   // ✅ Несколько операций = нужен service
-   async submitSession(sessionId) {
-     return await prisma.$transaction(async (tx) => {
-       // шаг 1: получить session
-       // шаг 2: проверить expiry
-       // шаг 3: считать score
-       // шаг 4: обновить session
-     });
-   }
-   ```
-
-3. **Переиспользование в разных routes**
-   ```typescript
-   // ✅ Scoring нужен в разных местах
-   // POST /api/sessions/:id/answers использует scoringService
-   // PUT /api/admin/answers/:id/grade использует scoringService
-   // GET /api/admin/leaderboard использует scoringService
-   ```
-
-4. **Вычисления и трансформации**
-   ```typescript
-   // ✅ Сложные вычисления
-   calculateFinalScore(answers)
-   generateReport(sessions)
-   validateAnswer(userAnswer, question)
-   ```
-
-**❌ Не нужен service когда:**
+### 4. Логирование
 
 ```typescript
-// ❌ Простой CRUD - нет смысла в service
-app.get('/api/categories', async (c) => {
-  const categories = await prisma.category.findMany();
-  return c.json({ categories });
-});
+import { logger } from 'hono/logger';
 
-// ❌ Просто получить и вернуть
-app.get('/api/questions/:id', async (c) => {
-  const question = await prisma.question.findUnique({
-    where: { id: c.req.param('id') }
+app.use('*', logger());
+
+// Или кастомное логирование
+app.use(async (c, next) => {
+  const start = Date.now();
+  await next();
+  const duration = Date.now() - start;
+
+  console.log({
+    method: c.req.method,
+    path: c.req.path,
+    status: c.res.status,
+    duration: `${duration}ms`,
+    timestamp: new Date().toISOString()
   });
-  return c.json({ question });
 });
 ```
 
-### Паттерн: Singleton Service
-
-В LR9 используется паттерн **Singleton** — один экземпляр сервиса на всё приложение.
+### 5. CORS для разработки
 
 ```typescript
-// src/services/scoringService.ts
-class ScoringService {
-  scoreMultipleSelect(correct, student): number { ... }
-  scoreEssay(grades, rubric): number { ... }
-}
+import { cors } from 'hono/cors';
 
-// Экспортируем один экземпляр
-export const scoringService = new ScoringService();
+app.use('*', cors({
+  origin: 'http://localhost:5173', // URL фронтенда
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowHeaders: ['Content-Type', 'Authorization']
+}));
 ```
 
-```typescript
-// src/routes/sessions.ts
-import { scoringService } from '../services/scoringService';
+---
 
-// Используем везде
-const score = scoringService.scoreMultipleSelect(correct, student);
+## Полезные команды
+
+```bash
+# Инициализация
+npm init -y
+npm install hono @prisma/client zod jsonwebtoken dotenv
+npm install -D typescript @types/node tsx @types/jsonwebtoken prisma
+
+# Разработка
+npm run dev                    # Запустить с hot reload
+
+# Prisma
+npx prisma init               # Инициализировать Prisma
+npx prisma migrate dev        # Создать и применить миграцию
+npx prisma studio            # Открыть визуальный редактор БД
+npx prisma generate          # Пересгенерировать клиент
+
+# Продакшн
+npm run build                 # Собрать проект
+npm start                     # Запустить продакшн
 ```
 
-**Почему singleton:**
-- Просто (один экземпляр)
-- Эффективно (нет создания новых объектов)
-- Стандартно (общий паттерн)
+---
 
-### Service → Service взаимодействие
+## Дополнительные ресурсы
 
-Services могут использовать друг друга.
-
-```typescript
-// src/services/scoringService.ts
-export class ScoringService {
-  scoreMultipleSelect(...) { ... }
-}
-
-// src/services/sessionService.ts
-import { scoringService } from './scoringService';
-
-export class SessionService {
-  async submitAnswer(sessionId, questionId, userAnswer) {
-    // SessionService использует ScoringService
-    const score = scoringService.scoreMultipleSelect(
-      correctAnswers,
-      userAnswer
-    );
-    // ...
-  }
-}
-```
-
-Это нормально! Services могут вызывать друг друга, если есть логическая зависимость.
-
-### Миграция с LR8 на LR9
-
-На LR8 вы писали логику в routes:
-
-```typescript
-// LR8 (routes/sessions.ts)
-app.post('/api/sessions/:id/answers', async (c) => {
-  // логика здесь
-});
-```
-
-На LR9 вы вынимаете логику в services:
-
-```typescript
-// LR9 (services/sessionService.ts)
-export class SessionService {
-  async submitAnswer(sessionId, questionId, userAnswer) {
-    // логика здесь
-  }
-}
-
-// LR9 (routes/sessions.ts)
-app.post('/api/sessions/:id/answers', async (c) => {
-  const answer = await sessionService.submitAnswer(...);
-  return c.json({ answer });
-});
-```
-
-Это естественная эволюция. Начинаете с простого (LR8), потом организуете код правильно (LR9).
+- [Hono документация](https://hono.dev)
+- [Prisma документация](https://www.prisma.io/docs)
+- [Zod документация](https://zod.dev)
+- [JWT.io](https://jwt.io)
+- [REST API Best Practices](https://restfulapi.net)
+- [HTTP Status Codes](https://httpwg.org/specs/rfc9110.html#status.codes)
