@@ -3,7 +3,6 @@ import app from "../../src/index.js";
 import { prisma } from "../../src/lib/prisma.js";
 import { sign } from "hono/jwt";
 
-
 describe("Sessions API — авторизация", () => {
   it("GET /api/sessions — без токена возвращает 401", async () => {
     const res = await app.request("/api/sessions");
@@ -25,14 +24,15 @@ describe("Sessions API — авторизация", () => {
   });
 
   it("POST /api/sessions/:id/submit — без токена возвращает 401", async () => {
-    const res = await app.request("/api/sessions/some-id/submit", { method: "POST" });
+    const res = await app.request("/api/sessions/some-id/submit", {
+      method: "POST",
+    });
     expect(res.status).toBe(401);
   });
 });
 
 const JWT_SECRET = "your-secret-key-change-in-production";
 
-// Тестовые данные — создаём один раз перед всеми тестами
 let testUserId: string;
 let testToken: string;
 let testCategoryId: string;
@@ -81,21 +81,24 @@ beforeAll(async () => {
   });
 });
 
-afterAll(async () => {
-  // Очищаем тестовые данные после всех тестов, чтобы не было мусора
-  await prisma.answer.deleteMany({ where: { session: { userId: testUserId } } });
-  await prisma.session.deleteMany({ where: { userId: testUserId } });
-  await prisma.question.deleteMany({ where: { categoryId: testCategoryId } });
-  await prisma.category.delete({ where: { id: testCategoryId } });
-  await prisma.user.delete({ where: { id: testUserId } });
-});
+// afterAll(async () => {
+//   await prisma.answer.deleteMany({
+//     where: { session: { userId: testUserId } },
+//   });
+//   await prisma.session.deleteMany({ where: { userId: testUserId } });
+//   await prisma.question.deleteMany({
+//     where: { categoryId: testCategoryId },
+//   });
+//   await prisma.category.delete({ where: { id: testCategoryId } });
+//   await prisma.user.delete({ where: { id: testUserId } });
+// });
 
 describe("Sessions API — создание сессии с вопросами", () => {
   it("POST /api/sessions — возвращает сессию с пользователем и вопросами", async () => {
     const res = await app.request("/api/sessions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${testToken}`,
+        Authorization: `Bearer ${testToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ categoryId: testCategoryId }),
@@ -105,29 +108,31 @@ describe("Sessions API — создание сессии с вопросами",
 
     const body = await res.json();
 
-    // Проверяем что сессия создана
+    // 🔥 ВЫВОД ВОПРОСОВ В КОНСОЛЬ
+    console.log("\n=== Список вопросов ===");
+    body.questions.forEach((q: any, index: number) => {
+      console.log(`${index + 1}. ${q.text} [${q.type}] (${q.points} points)`);
+    });
+    console.log("=======================\n");
+
+    // Проверки
     expect(body.session).toBeDefined();
     expect(body.session.id).toBeDefined();
     expect(body.session.status).toBe("in_progress");
 
-    // Проверяем что пользователь включён в ответ
     expect(body.session.user).toBeDefined();
     expect(body.session.user.id).toBe(testUserId);
     expect(body.session.user.email).toBe("session-test@example.com");
 
-    // Проверяем что ответы - пустой массив, так как сессия только началсь
     expect(body.session.answers).toEqual([]);
 
-    // Проверяем что вопросы возвращаются
     expect(body.questions).toBeDefined();
     expect(body.questions.length).toBe(2);
 
-    // Проверяем структуру вопроса
     expect(body.questions[0].text).toBeDefined();
     expect(body.questions[0].type).toBeDefined();
     expect(body.questions[0].points).toBeDefined();
 
-    // Проверяем количество вопросов и время выполнения
     expect(body.meta.availableQuestions).toBe(2);
     expect(body.meta.expiresIn).toBe("1 hour");
   });

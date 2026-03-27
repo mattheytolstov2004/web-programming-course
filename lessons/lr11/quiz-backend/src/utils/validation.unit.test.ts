@@ -1,210 +1,55 @@
-import { describe, it, expect } from 'vitest'
-import { AnswerSchema, QuestionSchema, GradeSchema, githubCallbackSchema } from './validation.js'
+import { describe, it, expect } from "vitest";
+import {
+  answerSchema,
+  questionSchema,
+  categorySchema,
+  paginationSchema,
+  toPrismaPage,
+} from "./validation.js";
 
-describe('Validation', () => {
+describe("validation schemas", () => {
+  it("answerSchema — валидный ответ проходит", () => {
+    const result = answerSchema.safeParse({ questionId: "abc123", userAnswer: ["a"] });
+    expect(result.success).toBe(true);
+  });
 
-  describe('AnswerSchema', () => {
-    it('valid payload with string answer passes (single-select)', () => {
-      const payload = {
-        questionId: 'q1',
-        answer: 'A'  // строка для single-select
-      }
+  it("answerSchema — пустой userAnswer отклоняется", () => {
+    const result = answerSchema.safeParse({ questionId: "abc123", userAnswer: [] });
+    expect(result.success).toBe(false);
+  });
 
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
+  it("questionSchema — неверный тип вопроса отклоняется", () => {
+    const result = questionSchema.safeParse({
+      text: "Вопрос", type: "unknown-type", categoryId: "cat123",
+    });
+    expect(result.success).toBe(false);
+  });
 
-    it('valid payload with array answer passes (multiple-select)', () => {
-      const payload = {
-        questionId: 'q1',
-        answer: ['A', 'B']  // массив для multiple-select
-      }
+  it("questionSchema — points по умолчанию равен 1", () => {
+    const result = questionSchema.safeParse({
+      text: "Вопрос", type: "essay", categoryId: "cat123",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.points).toBe(1);
+  });
 
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
+  it("categorySchema — slug с пробелами отклоняется", () => {
+    const result = categorySchema.safeParse({ name: "JS", slug: "java script" });
+    expect(result.success).toBe(false);
+  });
 
-    it('missing questionId fails', () => {
-      const payload = {
-        answer: ['A']
-      }
+  it("paginationSchema — строки конвертируются в числа", () => {
+    const result = paginationSchema.safeParse({ page: "2", limit: "10" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.page).toBe(2);
+  });
 
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
+  it("paginationSchema — limit больше 100 отклоняется", () => {
+    const result = paginationSchema.safeParse({ page: 1, limit: 101 });
+    expect(result.success).toBe(false);
+  });
 
-    it('empty string answer fails', () => {
-      const payload = {
-        questionId: 'q1',
-        answer: ''
-      }
-
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('empty array answer fails', () => {
-      const payload = {
-        questionId: 'q1',
-        answer: []
-      }
-
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('number answer fails', () => {
-      const payload = {
-        questionId: 'q1',
-        answer: 42
-      }
-
-      const result = AnswerSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-  })
-
-  describe('QuestionSchema', () => {
-    it('valid single-select question passes', () => {
-      const payload = {
-        text: 'What is 2+2?',
-        type: 'single-select',
-        categoryId: 'cat1',
-        correctAnswer: ['4'],
-        points: 5
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('valid multiple-select question passes', () => {
-      const payload = {
-        text: 'Which are prime?',
-        type: 'multiple-select',
-        categoryId: 'cat1',
-        correctAnswer: ['2', '3', '5'],
-        points: 5
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('valid essay question passes (correctAnswer optional)', () => {
-      const payload = {
-        text: 'Write an essay',
-        type: 'essay',
-        categoryId: 'cat1',
-        points: 10
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('missing text fails', () => {
-      const payload = {
-        type: 'single-select',
-        categoryId: 'cat1',
-        correctAnswer: ['4'],
-        points: 5
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('invalid type fails', () => {
-      const payload = {
-        text: 'Question',
-        type: 'invalid',
-        categoryId: 'cat1',
-        correctAnswer: ['4'],
-        points: 5
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('points less than 1 fails', () => {
-      const payload = {
-        text: 'Question',
-        type: 'single-select',
-        categoryId: 'cat1',
-        correctAnswer: ['4'],
-        points: 0
-      }
-
-      const result = QuestionSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-  })
-
-  describe('GradeSchema', () => {
-    it('valid grade with feedback passes', () => {
-      const payload = {
-        score: 8,
-        feedback: 'Good job!'
-      }
-
-      const result = GradeSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('valid grade without feedback passes', () => {
-      const payload = {
-        score: 8
-      }
-
-      const result = GradeSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('score less than 0 fails', () => {
-      const payload = {
-        score: -1
-      }
-
-      const result = GradeSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('score greater than 100 fails', () => {
-      const payload = {
-        score: 101
-      }
-
-      const result = GradeSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-  })
-
-  describe('githubCallbackSchema', () => {
-    it('valid code passes', () => {
-      const payload = {
-        code: 'abc123'
-      }
-
-      const result = githubCallbackSchema.safeParse(payload)
-      expect(result.success).toBe(true)
-    })
-
-    it('empty code fails', () => {
-      const payload = {
-        code: ''
-      }
-
-      const result = githubCallbackSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-
-    it('missing code fails', () => {
-      const payload = {}
-
-      const result = githubCallbackSchema.safeParse(payload)
-      expect(result.success).toBe(false)
-    })
-  })
-})
+  it("toPrismaPage — вторая страница даёт правильный skip", () => {
+    expect(toPrismaPage({ page: 2, limit: 10 })).toEqual({ skip: 10, take: 10 });
+  });
+});

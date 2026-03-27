@@ -1,23 +1,21 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
 }
 
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
   name      String?
-  githubId  String    @unique
+  githubId  Int       @unique
   role      String    @default("student")
   sessions  Session[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  @@index([role]) // для быстрых запросов по роли (admin/student)
 }
 
 model Category {
@@ -27,43 +25,37 @@ model Category {
   questions Question[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
-  @@index([slug]) // поиск по slug
 }
 
 model Question {
   id            String   @id @default(cuid())
   text          String
-  type          String
+  type          String   // "single-select", "multiple-select", "essay"
   categoryId    String
   category      Category @relation(fields: [categoryId], references: [id])
-  correctAnswer  Json?
+  correctAnswer String?  // JSON строка так как SQL не поддерживает такой тип
   points        Int      @default(1)
   answers       Answer[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  @@index([categoryId])           // быстрый поиск вопросов по категории
-  @@index([type])                 // фильтрация по типу
-  @@index([categoryId, type])      // комбинированный индекс
 }
 
 model Session {
   id          String    @id @default(cuid())
   userId      String
-  user        User       @relation(fields: [userId], references: [id])
-  status      String     @default("in_progress")
+  user        User      @relation(fields: [userId], references: [id])
+  status      String    @default("in_progress")
   score       Float?
-  startedAt   DateTime   @default(now())
+  startedAt   DateTime  @default(now())
   expiresAt   DateTime
   completedAt DateTime?
   answers     Answer[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  @@index([userId])            // быстрый поиск сессий пользователя
-  @@index([status])            // фильтрация по статусу
-  @@index([userId, status])     // комбинированный индекс (часто используется)
+  @@index([userId])
+  @@index([status])
+  @@index([userId, status])
 }
 
 model Answer {
@@ -72,13 +64,13 @@ model Answer {
   session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   questionId String
   question   Question @relation(fields: [questionId], references: [id])
-  userAnswer Json
+  userAnswer String   // JSON строка так как SQL не поддерживает такой тип
   score      Float?
   isCorrect  Boolean?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([sessionId, questionId]) // один ответ на вопрос в сессии
+  @@unique([sessionId, questionId])
   @@index([sessionId])
   @@index([questionId])
 }

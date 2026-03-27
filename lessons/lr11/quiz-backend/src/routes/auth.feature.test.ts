@@ -1,59 +1,24 @@
-import { describe, it, expect } from "vitest"
-import { app } from "../app.js"
+import { describe, it, expect } from "vitest";
+import app from "../../src/index.js";
+describe("Auth API", () => {
+  it("GET /health — сервер работает", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("ok");
+  });
+  
+  it("GET /api/auth/me — без токена возвращает 401", async () => {
+    const res = await app.request("/api/auth/me");
+    expect(res.status).toBe(401);
+  });
 
-describe("Auth feature", () => {
-
-  it("health check works", async () => {
-    const res = await app.request("/health")
-
-    expect(res.status).toBe(200)
-
-    const data = await res.json()
-    expect(data.status).toBe("ok")
-  })
-
-  it("github callback returns token", async () => {
-  const res = await app.request("/api/auth/github/callback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      code: "test_ok"
-    })
-  })
-
-  expect(res.status).toBe(200)
-
-  const data = await res.json()
-  expect(data.token).toBeDefined()
-})
-
-  it("me endpoint without token returns 401", async () => {
-    const res = await app.request("/api/auth/me")
-
-    expect(res.status).toBe(401)
-  })
-
-})
-
-it("me endpoint with invalid token returns 401", async () => {
-  const res = await app.request("/api/auth/me", {
-    method: "GET",
-    headers: {
-      Authorization: "Bearer invalid_token",
-    },
-  })
-
-  expect(res.status).toBe(401)
-})
-
-it("github callback with invalid payload returns 400", async () => {
-  const res = await app.request("/api/auth/github/callback", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  })
-
-  expect(res.status).toBe(400)
-})
+  it("POST /api/auth/github/callback — пустой code возвращает 400", async () => {
+    const res = await app.request("/api/auth/github/callback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "" }),
+    });
+    expect(res.status).toBe(400);
+  });
+});

@@ -1,25 +1,25 @@
-FROM node:20-alpine
-
-# Устанавливаем libssl для Prisma
-RUN apk add --no-cache openssl
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
 COPY package*.json ./
+RUN npm ci
 
-# Устанавливаем зависимости
-RUN npm install
-
-# Копируем весь проект
 COPY . .
 
-# Генерируем Prisma клиент
-RUN npx prisma generate
+RUN node_modules/.bin/tsc -p tsconfig.json
 
-# Собираем TypeScript
-RUN npx tsc --skipLibCheck
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/generated ./dist/src/generated
+COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/server.js"]

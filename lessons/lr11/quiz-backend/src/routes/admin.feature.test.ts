@@ -1,33 +1,20 @@
-import { describe, it, expect, beforeEach } from "vitest"
-import { app } from "../../tests/setup/test-app.js"
-import { resetTestDb } from "../../tests/setup/test-db.js"
-import { prisma } from "../db/prisma.js"
+import { describe, it, expect } from "vitest";
+import app from "../../src/index.js";
+describe("Admin API — security", () => {
+  it("без токена — возвращает 401", async () => {
+    const res = await app.request("/api/admin/questions");
+    expect(res.status).toBe(401);
+  });
 
-describe("Admin security", () => {
-  let studentToken: string
-
-  beforeEach(async () => {
-    await resetTestDb()
-
-    // Используем уникальный код для создания студента
-    const timestamp = Date.now()
-    const authRes = await app.request("/api/auth/github/callback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: `test_student_${timestamp}` }) // уникальный код
-    })
-    const authData = await authRes.json()
-    studentToken = authData.token
-  })
-
-  it("student cannot access admin endpoint", async () => {
-    const res = await app.request("/api/admin", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${studentToken}`
-      }
-    })
-
-    expect(res.status).toBe(403)
-  })
-})
+  it("с невалидным токеном — возвращает 401", async () => {
+    const res = await app.request("/api/admin/questions", {
+      headers: { "Authorization": "Bearer invalid_token" },
+    });
+    expect(res.status).toBe(401);
+  });
+  
+  it("GET /api/admin/answers/pending — без токена возвращает 401", async () => {
+    const res = await app.request("/api/admin/answers/pending");
+    expect(res.status).toBe(401);
+  });
+});

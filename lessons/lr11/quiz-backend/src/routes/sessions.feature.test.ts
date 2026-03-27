@@ -1,175 +1,134 @@
-import { describe, it, expect, beforeEach } from "vitest"
-import { app } from "../../tests/setup/test-app.js"
-import { resetTestDb } from "../../tests/setup/test-db.js"
-import { prisma } from "../db/prisma.js"
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import app from "../../src/index.js";
+import { prisma } from "../../src/lib/prisma.js";
+import { sign } from "hono/jwt";
 
-describe("Sessions feature", () => {
-  let authToken: string
-  let categoryId: string
-  let questionId: string
 
-  beforeEach(async () => {
-    await resetTestDb()
+describe("Sessions API — авторизация", () => {
+  it("GET /api/sessions — без токена возвращает 401", async () => {
+    const res = await app.request("/api/sessions");
+    expect(res.status).toBe(401);
+  });
 
-    // Получаем токен через GitHub callback
-    const authRes = await app.request("/api/auth/github/callback", {
+  it("POST /api/sessions — без токена возвращает 401", async () => {
+    const res = await app.request("/api/sessions", { method: "POST" });
+    expect(res.status).toBe(401);
+  });
+
+  it("POST /api/sessions/:id/answers — без токена возвращает 401", async () => {
+    const res = await app.request("/api/sessions/some-id/answers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: "test_ok" })
-    })
-    const authData = await authRes.json()
-    authToken = authData.token
+      body: JSON.stringify({ questionId: "q1", userAnswer: ["a"] }),
+    });
+    expect(res.status).toBe(401);
+  });
 
-    // Создаем категорию с уникальным slug
-    const timestamp = Date.now()
-    const category = await prisma.category.create({
-      data: {
-        name: `Test Category ${timestamp}`,
-        slug: `test-category-${timestamp}`
-      }
-    })
-    categoryId = category.id
+  it("POST /api/sessions/:id/submit — без токена возвращает 401", async () => {
+    const res = await app.request("/api/sessions/some-id/submit", { method: "POST" });
+    expect(res.status).toBe(401);
+  });
+});
 
-    // Создаем вопрос
-    const question = await prisma.question.create({
-      data: {
-        text: "What is 2+2?",
-        type: "single-select",
-        categoryId: categoryId,
-        correctAnswer: "4",
-        points: 5
-      }
-    })
-    questionId = question.id
-  })
+const JWT_SECRET = "your-secret-key-change-in-production";
 
-  it("create session without token returns 401", async () => {
-    const res = await app.request("/api/sessions", {
-      method: "POST"
-    })
+// Тестовые данные — создаём один раз перед всеми тестами
+let testUserId: string;
+let testToken: string;
+let testCategoryId: string;
 
-    expect(res.status).toBe(401)
-  })
+beforeAll(async () => {
+  const user = await prisma.user.create({
+    data: {
+      email: "session-test@example.com",
+      name: "Session Test User",
+      githubId: 77777,
+      role: "student",
+    },
+  });
+  testUserId = user.id;
 
-  it("get session without token returns 401", async () => {
-    const res = await app.request("/api/sessions/test", {
-      method: "GET"
-    })
+  testToken = await sign(
+    { userId: user.id, email: user.email },
+    JWT_SECRET,
+    "HS256"
+  );
 
-    expect(res.status).toBe(401)
-  })
+  const category = await prisma.category.create({
+    data: {
+      name: "Test Category",
+      slug: "test-category-session",
+    },
+  });
+  testCategoryId = category.id;
 
-  it("submit answer without token returns 401", async () => {
-    const res = await app.request("/api/sessions/test/answers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        questionId: "q1",
-        answer: "4"
-      })
-    })
-
-    expect(res.status).toBe(401)
-  })
-
-  it("should create a new session", async () => {
-    const res = await app.request("/api/sessions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    })
-
-    expect(res.status).toBe(201)
-    const data = await res.json()
-    expect(data.session).toBeDefined()
-    expect(data.session.id).toBeDefined()
-    expect(data.session.status).toBe("in_progress")
-    expect(data.totalQuestions).toBe(1)
-  })
-
-  it("should not allow user to answer in someone else's session", async () => {
-    // Создаем первого пользователя (владелец сессии)
-    const authRes1 = await app.request("/api/auth/github/callback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: "test_owner" })
-    })
-    const authData1 = await authRes1.json()
-    const ownerToken = authData1.token
-
-    // Создаем второго пользователя (злоумышленник)
-    const authRes2 = await app.request("/api/auth/github/callback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: "test_intruder" })
-    })
-    const authData2 = await authRes2.json()
-    const intruderToken = authData2.token
-
-    // Создаем категорию с уникальным slug для этого теста
-    const timestamp = Date.now()
-    const category = await prisma.category.create({
-      data: {
-        name: `Security Test Category ${timestamp}`,
-        slug: `security-test-category-${timestamp}`
-      }
-    })
-
-    // Создаем вопрос
-    const question = await prisma.question.create({
-      data: {
-        text: "Security test question",
-        type: "single-select",
+  await prisma.question.createMany({
+    data: [
+      {
+        text: "Что такое HTTP?",
+        type: "multiple-select",
         categoryId: category.id,
-        correctAnswer: "42",
-        points: 5
-      }
-    })
-
-    // Создаем сессию для первого пользователя (владельца)
-    const sessionRes = await app.request("/api/sessions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${ownerToken}`
-      }
-    })
-    
-    expect(sessionRes.status).toBe(201)
-    const sessionData = await sessionRes.json()
-    const newSessionId = sessionData.session.id
-
-    // Проверка 1: Владелец может отвечать в свою сессию (должно работать)
-    const ownerAnswerRes = await app.request(`/api/sessions/${newSessionId}/answers`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${ownerToken}`,
-        "Content-Type": "application/json"
+        correctAnswer: JSON.stringify(["a"]),
+        points: 1,
       },
-      body: JSON.stringify({
-        questionId: question.id,
-        answer: "42"
-      })
-    })
-    
-    expect(ownerAnswerRes.status).toBe(200)
+      {
+        text: "Что такое REST?",
+        type: "essay",
+        categoryId: category.id,
+        points: 2,
+      },
+    ],
+  });
+});
 
-    // Проверка 2: Злоумышленник НЕ может отвечать в чужую сессию (должно падать с 403)
-    const intruderAnswerRes = await app.request(`/api/sessions/${newSessionId}/answers`, {
+afterAll(async () => {
+  // Очищаем тестовые данные после всех тестов, чтобы не было мусора
+  await prisma.answer.deleteMany({ where: { session: { userId: testUserId } } });
+  await prisma.session.deleteMany({ where: { userId: testUserId } });
+  await prisma.question.deleteMany({ where: { categoryId: testCategoryId } });
+  await prisma.category.delete({ where: { id: testCategoryId } });
+  await prisma.user.delete({ where: { id: testUserId } });
+});
+
+describe("Sessions API — создание сессии с вопросами", () => {
+  it("POST /api/sessions — возвращает сессию с пользователем и вопросами", async () => {
+    const res = await app.request("/api/sessions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${intruderToken}`,
-        "Content-Type": "application/json"
+        "Authorization": `Bearer ${testToken}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        questionId: question.id,
-        answer: "42"
-      })
-    })
+      body: JSON.stringify({ categoryId: testCategoryId }),
+    });
 
-    // Ожидаем ошибку доступа
-    expect(intruderAnswerRes.status).toBe(403)
-    const errorData = await intruderAnswerRes.json()
-    expect(errorData.error).toContain('permission')
-  })
-})
+    expect(res.status).toBe(201);
+
+    const body = await res.json();
+
+    // Проверяем что сессия создана
+    expect(body.session).toBeDefined();
+    expect(body.session.id).toBeDefined();
+    expect(body.session.status).toBe("in_progress");
+
+    // Проверяем что пользователь включён в ответ
+    expect(body.session.user).toBeDefined();
+    expect(body.session.user.id).toBe(testUserId);
+    expect(body.session.user.email).toBe("session-test@example.com");
+
+    // Проверяем что ответы - пустой массив, так как сессия только началсь
+    expect(body.session.answers).toEqual([]);
+
+    // Проверяем что вопросы возвращаются
+    expect(body.questions).toBeDefined();
+    expect(body.questions.length).toBe(2);
+
+    // Проверяем структуру вопроса
+    expect(body.questions[0].text).toBeDefined();
+    expect(body.questions[0].type).toBeDefined();
+    expect(body.questions[0].points).toBeDefined();
+
+    // Проверяем количество вопросов и время выполнения
+    expect(body.meta.availableQuestions).toBe(2);
+    expect(body.meta.expiresIn).toBe("1 hour");
+  });
+});

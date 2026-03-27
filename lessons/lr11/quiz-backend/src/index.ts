@@ -1,21 +1,21 @@
 import { Hono } from 'hono'
-import { serve } from '@hono/node-server'
-
-import authRoute from './routes/auth.js'
-import sessionsRoute from './routes/sessions.js'
-import adminRoute from './routes/admin.js'
+import auth from "./routes/auth.js"
+import sessions from "./routes/sessions.js"
+import admin from "./routes/admin.js"
+import "dotenv/config"
 
 const app = new Hono()
 
-app.route('/api/auth', authRoute)
-app.route('/api/sessions', sessionsRoute)
-app.route('/api/admin', adminRoute)
-
-serve({
-  fetch: app.fetch,
-  port: 3000
+app.get('/', (c) => {
+  return c.text('Hello Hono!')
 })
 
 app.get('/health', (c) => {
-  return c.json({ status: 'ok' })
-})
+  return c.json({ status: "ok" });
+});
+
+app.route("/api/auth", auth)
+app.route("/api/sessions", sessions)
+app.route("/api/admin", admin)
+
+export default app
