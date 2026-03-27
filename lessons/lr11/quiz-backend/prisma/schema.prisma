@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  githubId  String    @unique
+  role      String    @default("student")
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([role]) // для быстрых запросов по роли (admin/student)
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  questions Question[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([slug]) // поиск по slug
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  text          String
+  type          String
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  correctAnswer  Json?
+  points        Int      @default(1)
+  answers       Answer[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoryId])           // быстрый поиск вопросов по категории
+  @@index([type])                 // фильтрация по типу
+  @@index([categoryId, type])      // комбинированный индекс
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  status      String     @default("in_progress")
+  score       Float?
+  startedAt   DateTime   @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+  answers     Answer[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])            // быстрый поиск сессий пользователя
+  @@index([status])            // фильтрация по статусу
+  @@index([userId, status])     // комбинированный индекс (часто используется)
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  userAnswer Json
+  score      Float?
+  isCorrect  Boolean?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([sessionId, questionId]) // один ответ на вопрос в сессии
+  @@index([sessionId])
+  @@index([questionId])
+}

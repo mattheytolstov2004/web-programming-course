@@ -33,7 +33,7 @@ model Question {
   type          String // "single-select", "multiple-select", "essay"
   categoryId    String
   category      Category @relation(fields: [categoryId], references: [id])
-  correctAnswer String? // JSON строка (SQLite не поддерживает Json тип)
+  correctAnswer String? // JSON строка так как SQL не поддерживает такой тип
   points        Int      @default(1)
   answers       Answer[]
   createdAt     DateTime @default(now())
@@ -64,7 +64,7 @@ model Answer {
   session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   questionId String
   question   Question @relation(fields: [questionId], references: [id])
-  userAnswer String // JSON строка
+  userAnswer String // JSON строка так как SQL не поддерживает такой тип
   score      Float?
   isCorrect  Boolean?
   createdAt  DateTime @default(now())

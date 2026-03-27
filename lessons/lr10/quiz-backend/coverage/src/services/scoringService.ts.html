@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.55% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -114,30 +114,30 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -152,31 +152,31 @@ export interface RubricItem {
 }
 &nbsp;
 export class ScoringService {
-<span class="fstat-no" title="function not covered" >  scoreMultipleSelect(c</span>orrectAnswers: string[], studentAnswers: string[]): number {
-    let score = <span class="cstat-no" title="statement not covered" >0;</span>
-<span class="cstat-no" title="statement not covered" >    for (const answer of studentAnswers) {</span>
-<span class="cstat-no" title="statement not covered" >      if (correctAnswers.includes(answer)) {</span>
-<span class="cstat-no" title="statement not covered" >        score += 1;</span>
+  scoreMultipleSelect(correctAnswers: string[], studentAnswers: string[]): number {
+    let score = 0;
+    for (const answer of studentAnswers) {
+      if (correctAnswers.includes(answer)) {
+        score += 1;
       } else {
-<span class="cstat-no" title="statement not covered" >        score -= 0.5;</span>
+        score -= 0.5;
       }
     }
-<span class="cstat-no" title="statement not covered" >    return Math.max(0, score);</span>
+    return Math.max(0, score);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  scoreEssay(g</span>rades: EssayGrade[], rubric: RubricItem[]): number {
-    let total = <span class="cstat-no" title="statement not covered" >0;</span>
-<span class="cstat-no" title="statement not covered" >    for (const grade of grades) {</span>
-      const rubricItem = <span class="cstat-no" title="statement not covered" >rubric.find(<span class="fstat-no" title="function not covered" >(r</span>) =&gt; <span class="cstat-no" title="statement not covered" >r.criterion === grade.criterion)</span>;</span>
-<span class="cstat-no" title="statement not covered" >      if (!rubricItem) <span class="cstat-no" title="statement not covered" >continue;</span></span>
-      const capped = <span class="cstat-no" title="statement not covered" >Math.min(grade.points, rubricItem.maxPoints);</span>
-<span class="cstat-no" title="statement not covered" >      total += Math.max(0, capped);</span>
+  scoreEssay(grades: EssayGrade[], rubric: RubricItem[]): number {
+    let total = 0;
+    for (const grade of grades) {
+      const rubricItem = rubric.find((r) =&gt; r.criterion === grade.criterion);
+      if (!rubricItem) continue;
+      const capped = Math.min(grade.points, rubricItem.maxPoints);
+      total += Math.max(0, capped);
     }
-<span class="cstat-no" title="statement not covered" >    return total;</span>
+    return total;
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  maxEssayScore(r</span>ubric: RubricItem[]): number {
-<span class="cstat-no" title="statement not covered" >    return rubric.reduce(<span class="fstat-no" title="function not covered" >(s</span>um, item) =&gt; <span class="cstat-no" title="statement not covered" >sum + item.maxPoints, 0</span>);</span>
+  maxEssayScore(rubric: RubricItem[]): number {
+    return rubric.reduce((sum, item) =&gt; sum + item.maxPoints, 0);
   }
 }
 &nbsp;
@@ -187,7 +187,7 @@ export const scoringService = new ScoringService();</pre></td></tr></table></pre
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-13T05:42:42.625Z
+                at 2026-03-12T12:21:18.022Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
