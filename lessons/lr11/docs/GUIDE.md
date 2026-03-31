@@ -1,4 +1,4 @@
-# LR10: Backend Testing & Validation
+# LR11: DevOps - Docker & CI/CD (Local-first)
 
 ## Полное теоретическое руководство
 
@@ -6,257 +6,458 @@
 
 ## Оглавление
 
-1. [Почему тестирование backend критично](#почему-тестирование-backend-критично)
-2. [Тестовая пирамида для API](#тестовая-пирамида-для-api)
-3. [Стратегия мокирования](#стратегия-мокирования)
-4. [Настройка Vitest для Node.js backend](#настройка-vitest-для-nodejs-backend)
-5. [Co-located структура тестов](#co-located-структура-тестов)
-6. [Unit тесты бизнес-логики](#unit-тесты-бизнес-логики)
-7. [Validation testing (Zod)](#validation-testing-zod)
-8. [Feature testing для Hono endpoints](#feature-testing-для-hono-endpoints)
-9. [Network E2E smoke (теория)](#network-e2e-smoke-теория)
-10. [Security testing](#security-testing)
-11. [Fixtures и тестовые данные](#fixtures-и-тестовые-данные)
-12. [Coverage и качество тестов](#coverage-и-качество-тестов)
+1. [Почему DevOps в этом курсе начинается с локального контура](#почему-devops-в-этом-курсе-начинается-с-локального-контура)
+2. [Windows-first: как читать команды](#windows-first-как-читать-команды)
+3. [Docker: базовые сущности](#docker-базовые-сущности)
+4. [Как читать Dockerfile](#как-читать-dockerfile)
+5. [Multi-stage build для Node.js backend](#multi-stage-build-для-nodejs-backend)
+6. [Docker Compose для backend + database](#docker-compose-для-backend--database)
+7. [Environment variables и secrets](#environment-variables-и-secrets)
+8. [Volumes, bind mounts и dev-режим](#volumes-bind-mounts-и-dev-режим)
+9. [Healthchecks и логи](#healthchecks-и-логи)
+10. [CI/CD базовая модель](#cicd-базовая-модель)
+11. [GitHub Actions: workflow, jobs, steps](#github-actions-workflow-jobs-steps)
+12. [CI workflow под LR11](#ci-workflow-под-lr11)
+13. [Локальный запуск CI: act и fallback-подход](#локальный-запуск-ci-act-и-fallback-подход)
+14. [Local CD-like сценарий без удаленного деплоя](#local-cd-like-сценарий-без-удаленного-деплоя)
+15. [Rollback локально](#rollback-локально)
+16. [Финальный checklist сдачи](#финальный-checklist-сдачи)
 
 ---
 
-## Почему тестирование backend критично
+## Почему DevOps в этом курсе начинается с локального контура
 
-Backend ошибки дороже frontend ошибок:
+В корневой программе курса для LR11 заявлены Docker и GitHub Actions.
 
-- падение endpoint влияет на всех пользователей
-- некорректный scoring даёт неверные результаты
-- слабая validation создаёт риски данных и доступа
-- регрессии в auth критичны для безопасности
+Чтобы это было практично, в этой лабораторной ограничиваемся локальным циклом:
+
+- сборка контейнера
+- запуск окружения
+- автоматические проверки
+- локальный release/rollback
+
+Почему так:
+
+- проще повторить каждому студенту
+- быстрее диагностировать ошибки
+- меньше внешних факторов (платформа, квоты, сеть)
+
+Это не «упрощение», а правильный фундамент перед удаленным деплоем в следующих этапах.
+
+---
+
+## Windows-first: как читать команды
+
+В этом гайде команды всегда идут парой:
+
+- **ЛИНУКС (эталон)** — базовый вариант (bash/zsh)
+- **WINDOWS (PowerShell)** — эквивалент для большинства студентов
+
+Если команда одинаковая, обе версии все равно показываются отдельно для однозначности.
+
+---
+
+## Docker: базовые сущности
+
+- **Image**: неизменяемый шаблон приложения
+- **Container**: запущенный экземпляр image
+- **Dockerfile**: рецепт сборки image
+- **Registry**: место хранения image (в LR11 можно не использовать)
+- **Volume**: постоянное хранилище данных
 
 Ключевая мысль:
 
-> Без тестов backend «возможно работает». С тестами backend «подтверждённо работает».
+> Docker делает окружение воспроизводимым, а не «магическим как на моем ноутбуке».
 
 ---
 
-## Тестовая пирамида для API
+## Как читать Dockerfile
 
-### Unit
+Базовые инструкции:
 
-Проверяют отдельные функции и классы.
+- `FROM` — базовый образ
+- `WORKDIR` — рабочая директория
+- `COPY` — копирование файлов в image
+- `RUN` — шаги сборки (install/build)
+- `ENV` — переменные среды
+- `EXPOSE` — документирование порта
+- `CMD` — команда запуска контейнера
 
-### Feature
+Порядок инструкций важен для кеша.
 
-Проверяют связку модулей в сценарии API (route + middleware + service + validation + data layer).
+Частая ошибка:
 
-### Manual smoke
+- сначала `COPY . .`, потом `npm install`
 
-Небольшая ручная проверка API перед сдачей.
+Лучше:
 
-Практический baseline LR10: **unit + feature**.
+1. копировать `package*.json`
+2. ставить зависимости
+3. копировать остальной код
 
----
-
-## Стратегия мокирования
-
-### Зачем мокировать
-
-- ускорить unit-тесты
-- сделать тесты детерминированными
-- тестировать свою логику, а не стороннюю библиотеку
-
-### Когда мокировать
-
-- unit-тесты сервисов
-- внешние зависимости: БД, HTTP API, очередь, файловая система
-- обработка ошибок зависимостей (timeout/exception)
-
-### Когда не мокировать
-
-- feature-тесты сквозных сценариев
-- проверка реальной интеграции модулей
-
-### Prisma как частный случай
-
-- unit сервисов: Prisma мокается всегда
-- feature слой: Prisma не мокается, используется test DB
+Так Docker может переиспользовать кеш слоев.
 
 ---
 
-## Настройка Vitest для Node.js backend
+## Multi-stage build для Node.js backend
 
-### Зависимости
+Цель: уменьшить размер runtime image и убрать лишние dev-зависимости.
+
+Пример:
+
+```dockerfile
+# Stage 1: build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Stage 2: runtime
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+```
+
+Что важно:
+
+- runtime stage не должен содержать исходники и dev tooling
+- команда запуска должна стартовать уже собранный код
+
+---
+
+## Docker Compose для backend + database
+
+Compose дает локальную оркестрацию нескольких сервисов.
+
+Минимум для LR11:
+
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: quiz
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: quiz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz -d quiz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+```
+
+Практическое правило:
+
+- внутри compose backend должен ходить к БД по host `db`, а не `localhost`.
+
+---
+
+## Environment variables и secrets
+
+В LR11 используем локальный `.env` и шаблон `.env.example`.
+
+Пример:
+
+```env
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://quiz:quiz@db:5432/quiz
+JWT_SECRET=local-dev-secret
+```
+
+Правила:
+
+- `.env` не коммитить
+- `.env.example` коммитить
+- секреты не хардкодить в Dockerfile и workflow
+
+---
+
+## Volumes, bind mounts и dev-режим
+
+- **Named volume**: для данных БД
+- **Bind mount**: для исходников в dev-режиме
+
+Для production-подобного запуска LR11 bind mounts не обязательны.
+
+Для dev-итераций можно добавить `docker-compose.dev.yml`:
+
+- монтировать `./src:/app/src`
+- запускать `npm run dev`
+
+---
+
+## Healthchecks и логи
+
+Контейнер считается «полезно живым», если проходит healthcheck.
+
+Минимальный smoke-check:
 
 ```bash
-npm install -D vitest @vitest/coverage-v8 vitest-mock-extended
+# ЛИНУКС (эталон)
+curl -f http://localhost:3000/health
 ```
 
-Для Hono feature тестов (`app.request` / `testClient`) дополнительных пакетов не требуется.
-
-### Минимальный `vitest.config.ts`
-
-```ts
-import { defineConfig } from "vitest/config";
-
-export default defineConfig({
-  test: {
-    environment: "node",
-    globals: true,
-    include: ["src/**/*.test.ts"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html"],
-      include: ["src/**/*.ts"],
-    },
-  },
-});
+```powershell
+# WINDOWS (PowerShell)
+$resp = Invoke-WebRequest -Uri "http://localhost:3000/health"
+if ($resp.StatusCode -ne 200) { throw "Healthcheck failed" }
 ```
 
-### Scripts
+Диагностика:
 
-```json
-{
-  "scripts": {
-    "test:unit": "vitest run \"src/**/*.unit.test.ts\"",
-    "test:feature": "vitest run \"src/**/*.feature.test.ts\"",
-    "test": "vitest run \"src/**/*.{unit,feature}.test.ts\"",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
-  }
-}
+```bash
+# ЛИНУКС (эталон)
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f db
+```
+
+```powershell
+# WINDOWS (PowerShell)
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f db
+```
+
+Если контейнер restart-ится циклически, сначала смотрите логи backend, затем переменные среды.
+
+---
+
+## CI/CD базовая модель
+
+- **CI (Continuous Integration)**: автоматическая проверка изменений
+- **CD (Continuous Delivery/Deployment)**: автоматическая подготовка/доставка релиза
+
+В LR11 реализуем:
+
+- полноценный CI
+- локальный CD-like контур без внешней платформы
+
+---
+
+## GitHub Actions: workflow, jobs, steps
+
+Workflow файл хранится в `.github/workflows/ci.yml`.
+
+Структура:
+
+- `on`: когда запускать
+- `jobs`: набор независимых задач
+- `steps`: последовательность действий внутри job
+
+Пример базового workflow:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Docker build
+        run: docker build -t quiz-backend:ci .
 ```
 
 ---
 
-## Co-located структура тестов
+## CI workflow под LR11
 
-Стандарт LR10: тесты рядом с кодом фичи.
+Минимальные quality gates:
 
-```text
-src/
-  services/
-    scoringService.ts
-    scoringService.unit.test.ts
-  routes/
-    auth.ts
-    auth.feature.test.ts
-  utils/
-    validation.ts
-    validation.unit.test.ts
-tests/
-  setup/
-    test-db.ts
-    test-app.ts
+1. `npm ci`
+2. `npm run lint`
+3. `npm run test`
+4. `npm run build`
+5. `docker build`
+
+Если любой шаг падает — merge блокируется до исправления.
+
+Рекомендуется добавлять шаги именно в этом порядке:
+
+- сначала быстрые проверки (lint)
+- затем тесты
+- потом более тяжелая docker сборка
+
+---
+
+## Локальный запуск CI: act и fallback-подход
+
+Вариант 1 (предпочтительно): `act`
+
+```bash
+# ЛИНУКС (эталон)
+act -W .github/workflows/ci.yml
 ```
 
-Преимущества:
-
-- легче поддерживать при рефакторинге
-- тест и код рядом, быстрее навигация
-- меньше дублирования контекста
-
----
-
-## Unit тесты бизнес-логики
-
-Unit-тесты пишутся без HTTP и без реальной БД.
-
-### Prisma mock шаблон
-
-```ts
-import { vi, beforeEach } from "vitest";
-import { mockDeep, mockReset } from "vitest-mock-extended";
-import type { PrismaClient } from "@prisma/client";
-
-const prismaMock = mockDeep<PrismaClient>();
-vi.mock("../../src/db/client", () => ({ prisma: prismaMock }));
-
-beforeEach(() => {
-  mockReset(prismaMock);
-});
+```powershell
+# WINDOWS (PowerShell)
+act -W .github/workflows/ci.yml
 ```
 
-### Что обязательно покрыть
+Вариант 2 (fallback): локальный CI скрипт с тем же порядком команд
 
-- happy path
-- negative path
-- boundary values
-- edge cases
-
----
-
-## Validation testing (Zod)
-
-Zod схемы тестируются отдельно, чтобы ошибки входных данных были предсказуемыми.
-
-```ts
-const result = AnswerSchema.safeParse(validPayload);
-expect(result.success).toBe(true);
-
-const bad = AnswerSchema.safeParse(invalidPayload);
-expect(bad.success).toBe(false);
+```bash
+# ЛИНУКС (эталон)
+npm ci
+npm run lint
+npm run test
+npm run build
+docker build -t quiz-backend:ci .
 ```
 
-Используйте `safeParse`, чтобы не писать `try/catch` в каждом тесте.
-
----
-
-## Feature testing для Hono endpoints
-
-Feature тесты в Hono:
-
-- `app.request(...)`
-- `testClient(app)` из `hono/testing` для type-safe вызовов
-
-### Пример
-
-```ts
-const res = await app.request("/api/auth/github/callback", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ code: "test_ok" }),
-});
-
-expect(res.status).toBe(200);
-expect((await res.json()).token).toBeTypeOf("string");
+```powershell
+# WINDOWS (PowerShell)
+npm ci
+npm run lint
+npm run test
+npm run build
+docker build -t quiz-backend:ci .
 ```
 
-Feature слой проверяет не только status code, но и API контракт.
+Важно: fallback не заменяет Actions, но полезен для быстрого дебага.
 
 ---
 
-## Network E2E smoke (теория)
+## Local CD-like сценарий без удаленного деплоя
 
-Network E2E smoke — отдельный процесс и реальный HTTP порт.
+Цель: воспроизвести базовый release-процесс локально.
 
-Для LR10 это **теоретический блок**, не обязательная практика.
+Пример последовательности:
 
----
+1. Собрать image с tag
+2. Запустить compose
+3. Выполнить healthcheck и smoke endpoints
+4. В случае ошибки вернуть предыдущий tag
 
-## Security testing
+Пример tag-подхода:
 
-Минимальный checklist:
+```bash
+# ЛИНУКС (эталон)
+export TAG=$(date +%Y%m%d-%H%M%S)
+docker build -t quiz-backend:$TAG .
+```
 
-1. Нет токена -> `401`
-2. Невалидный токен -> `401`
-3. Недостаточно прав -> `403`
-4. Некорректный payload -> `400/422`
-
----
-
-## Fixtures и тестовые данные
-
-Рекомендации:
-
-- использовать фабрики payload
-- не дублировать JSON вручную в каждом тесте
-- держать тестовые данные детерминированными
+```powershell
+# WINDOWS (PowerShell)
+$TAG = Get-Date -Format "yyyyMMdd-HHmmss"
+docker build -t quiz-backend:$TAG .
+```
 
 ---
 
-## Coverage и качество тестов
+## Rollback локально
 
-Coverage — индикатор слепых зон, а не самоцель.
+Простейший подход:
 
-Для LR10:
+1. хранить `previous` и `current` tags
+2. при сбое переключать compose на `previous`
+3. повторять smoke-check
 
-- фиксируем фактическое покрытие и смотрим слепые зоны
-- есть negative cases
-- unit и feature оба поддерживаются
+Пример логики rollback:
+
+```bash
+# ЛИНУКС (эталон)
+# pseudo-steps
+# 1) docker compose down
+# 2) export BACKEND_IMAGE=quiz-backend:<previous-tag>
+# 3) docker compose up -d
+# 4) curl /health
+```
+
+```powershell
+# WINDOWS (PowerShell)
+# pseudo-steps
+# 1) docker compose down
+# 2) $env:BACKEND_IMAGE="quiz-backend:<previous-tag>"
+# 3) docker compose up -d
+# 4) Invoke-WebRequest http://localhost:3000/health
+```
+
+Это дает практику контроля релизов без внешней инфраструктуры.
+
+---
+
+## Финальный checklist сдачи
+
+- Есть `Dockerfile` и `.dockerignore`
+- Есть `docker-compose.yml` для backend + db
+- Есть `ci.yml` с lint/test/build/docker-build
+- Есть подтверждение успешного контейнерного запуска
+- Есть локальный smoke-check
+- Есть описание локального rollback сценария
+- В работе отсутствует удаленный деплой
+
+---
+
+## Частые anti-patterns
+
+1. Сборка и запуск на `latest` без tag'ов
+2. Один контейнер и для build, и для runtime с dev-зависимостями
+3. Хардкод секретов в Dockerfile
+4. Отсутствие healthcheck
+5. Нет воспроизводимого порядка CI шагов
+
+---
+
+## Итог
+
+LR11 — это переход от «код запускается» к «код воспроизводимо собирается, проверяется и запускается в стандартизированном окружении».
+
+Следующий логический шаг после этой лабораторной — подключение удаленного deployment в отдельном занятии.

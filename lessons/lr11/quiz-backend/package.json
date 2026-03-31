@@ -2,6 +2,7 @@
   "name": "quiz-backend",
   "type": "module",
   "scripts": {
+    "lint": "eslint .",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
@@ -9,7 +10,13 @@
     "test:feature": "vitest run --reporter=verbose",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "ci:local:win": "powershell -ExecutionPolicy Bypass -File .\\scripts\\local-release.ps1",
+    "docker:build": "docker build -t quiz-backend:local .",
+    "docker:run": "docker run --rm -p 3000:3000 --env-file .env quiz-backend:local",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down -v",
+    "compose:logs": "docker compose logs -f backend"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
@@ -20,14 +27,14 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.11.17",
     "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.1.0",
     "prisma": "^7.5.0",
     "tsx": "^4.7.1",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18",
     "vitest-mock-extended": "^3.1.0"
   }
-
-  
 }

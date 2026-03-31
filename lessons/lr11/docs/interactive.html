@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LR10 Interactive Examples - Backend Testing & Validation</title>
+    <title>LR11 Interactive Examples - Docker & CI/CD</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     <style>
@@ -15,8 +15,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #263238 0%, #37474f 100%);
-            color: #333;
+            background: linear-gradient(135deg, #1f2a44 0%, #2b3a67 100%);
+            color: #2d3748;
             padding: 20px;
             min-height: 100vh;
         }
@@ -27,68 +27,68 @@
         }
 
         header {
-            background: white;
+            background: #ffffff;
             padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            margin-bottom: 28px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
         }
 
         h1 {
-            color: #263238;
-            margin-bottom: 10px;
+            color: #1f2a44;
+            margin-bottom: 8px;
         }
 
         .subtitle {
-            color: #666;
+            color: #4a5568;
             font-size: 16px;
         }
 
         .search-box {
-            margin-top: 20px;
+            margin-top: 18px;
         }
 
         #search {
             width: 100%;
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 4px;
+            padding: 12px 14px;
+            border: 2px solid #d2d8e5;
+            border-radius: 6px;
             font-size: 16px;
         }
 
         #search:focus {
             outline: none;
-            border-color: #37474f;
-            box-shadow: 0 0 0 3px rgba(55, 71, 79, 0.15);
+            border-color: #2b3a67;
+            box-shadow: 0 0 0 3px rgba(43, 58, 103, 0.15);
         }
 
         .filter-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: 14px;
         }
 
         .tag {
             padding: 6px 12px;
-            border: 2px solid #cfd8dc;
+            border: 2px solid #c7cfdf;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.2s;
-            background: white;
-            color: #263238;
+            background: #fff;
+            color: #1f2a44;
             font-size: 14px;
         }
 
         .tag:hover {
-            border-color: #37474f;
-            color: #37474f;
+            border-color: #2b3a67;
+            color: #2b3a67;
         }
 
         .tag.active {
-            background: #37474f;
-            color: white;
-            border-color: #37474f;
+            background: #2b3a67;
+            color: #fff;
+            border-color: #2b3a67;
         }
 
         .examples-grid {
@@ -99,22 +99,22 @@
         }
 
         .example-card {
-            background: white;
-            border-radius: 8px;
+            background: #fff;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .example-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.22);
         }
 
         .example-header {
-            background: linear-gradient(135deg, #455a64 0%, #263238 100%);
-            color: white;
-            padding: 18px;
+            background: linear-gradient(135deg, #374785 0%, #1f2a44 100%);
+            color: #fff;
+            padding: 16px;
         }
 
         .example-title {
@@ -133,22 +133,22 @@
         }
 
         .example-body {
-            padding: 18px;
+            padding: 16px;
         }
 
         .example-description {
-            color: #666;
+            color: #4a5568;
             margin-bottom: 12px;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         pre {
-            background: #1e1e1e;
-            border-radius: 4px;
+            background: #1f1f1f;
+            border-radius: 6px;
             padding: 12px;
             overflow-x: auto;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         code {
@@ -158,7 +158,7 @@
         }
 
         .hljs {
-            background: #1e1e1e !important;
+            background: #1f1f1f !important;
         }
 
         .pagination {
@@ -171,25 +171,25 @@
         .pagination button {
             padding: 8px 12px;
             border: none;
-            border-radius: 4px;
-            background: #607d8b;
-            color: white;
+            border-radius: 5px;
+            background: #4a5f96;
+            color: #fff;
             cursor: pointer;
         }
 
         .pagination button.active {
-            background: #263238;
+            background: #1f2a44;
         }
 
         .not-found {
             text-align: center;
             padding: 60px 20px;
-            color: #eceff1;
+            color: #e2e8f0;
         }
 
         footer {
             text-align: center;
-            color: #eceff1;
+            color: #e2e8f0;
             padding: 20px;
             margin-top: 20px;
         }
@@ -204,8 +204,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>LR10: Backend Testing & Validation - Interactive Examples</h1>
-            <p class="subtitle">Unit, Integration, Validation, Security и Coverage в одном справочнике</p>
+            <h1>LR11: Docker & CI/CD - Interactive Examples</h1>
+            <p class="subtitle">Local-first DevOps: контейнеризация, CI и локальный release-контур</p>
 
             <div class="search-box">
                 <input type="text" id="search" placeholder="Поиск по названию, описанию или коду...">
@@ -213,11 +213,11 @@
 
             <div class="filter-tags">
                 <span class="tag active" data-filter="all">Все</span>
-                <span class="tag" data-filter="unit">Unit</span>
-                <span class="tag" data-filter="integration">Integration</span>
-                <span class="tag" data-filter="validation">Validation</span>
-                <span class="tag" data-filter="security">Security</span>
-                <span class="tag" data-filter="coverage">Coverage</span>
+                <span class="tag" data-filter="docker">Docker</span>
+                <span class="tag" data-filter="compose">Compose</span>
+                <span class="tag" data-filter="ci">CI</span>
+                <span class="tag" data-filter="cd">CD-local</span>
+                <span class="tag" data-filter="debug">Debug</span>
             </div>
         </header>
 
@@ -231,151 +231,160 @@
     </div>
 
     <footer>
-        LR10 • Backend Testing & Validation
+        LR11 • DevOps - Docker & CI/CD (Local-first)
     </footer>
 
     <script>
         const examples = [
             {
                 id: 1,
-                title: 'Vitest Config для backend',
-                category: 'coverage',
-                description: 'Базовая конфигурация Vitest для Node.js API проекта',
-                code: `import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    environment: 'node',
-    globals: true,
-    include: ['tests/**/*.test.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/**/*.ts']
-    }
-  }
-});`
+                title: 'Docker build локального backend образа',
+                category: 'docker',
+                description: 'Сборка контейнерного образа из Dockerfile',
+                code: `docker build -t quiz-backend:local .`
             },
             {
                 id: 2,
-                title: 'Unit: scoring with penalties',
-                category: 'unit',
-                description: 'Проверка бизнес-правила штрафа за неверный ответ',
-                code: `it('should apply penalty for wrong answers', () => {
-  const score = service.scoreMultipleSelect(['A', 'C'], ['A', 'B']);
-  expect(score).toBe(0.5);
-});`
+                title: 'Запуск backend контейнера',
+                category: 'docker',
+                description: 'Локальный запуск собранного образа с переменными среды',
+                code: `docker run --rm -p 3000:3000 --env-file .env quiz-backend:local`
             },
             {
                 id: 3,
-                title: 'Unit: score lower bound',
-                category: 'unit',
-                description: 'Счёт не должен уходить в отрицательное значение',
-                code: `it('should return 0 when all answers are wrong', () => {
-  const score = service.scoreMultipleSelect(['A'], ['B', 'C']);
-  expect(score).toBe(0);
-});`
+                title: 'Multi-stage Dockerfile',
+                category: 'docker',
+                description: 'Скелет Dockerfile для builder и runner стадий',
+                code: `FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=builder /app/dist ./dist
+CMD ["node", "dist/index.js"]`
             },
             {
                 id: 4,
-                title: 'Validation: valid payload',
-                category: 'validation',
-                description: 'Позитивный тест Zod schema',
-                code: `const result = AnswerSchema.safeParse({
-  questionId: 'q1',
-  sessionId: 's1',
-  userAnswer: ['A']
-});
-
-expect(result.success).toBe(true);`
+                title: 'Compose: старт стека',
+                category: 'compose',
+                description: 'Поднять backend + db в фоне',
+                code: `docker compose up --build -d
+docker compose ps`
             },
             {
                 id: 5,
-                title: 'Validation: invalid payload',
-                category: 'validation',
-                description: 'Негативный тест Zod schema с отсутствующим полем',
-                code: `const result = AnswerSchema.safeParse({
-  userAnswer: ['A']
-});
+                title: 'Compose service definition',
+                category: 'compose',
+                description: 'Минимальная связка backend и Postgres',
+                code: `services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: quiz
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: quiz
 
-expect(result.success).toBe(false);`
+  backend:
+    build: .
+    env_file: [.env]
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"`
             },
             {
                 id: 6,
-                title: 'Integration: health endpoint',
-                category: 'integration',
-                description: 'Проверка простого endpoint через app.request',
-                code: `const res = await app.request('/health');
-expect(res.status).toBe(200);
-
-const body = await res.json();
-expect(body.status).toBe('ok');`
+                title: 'Compose logs',
+                category: 'debug',
+                description: 'Быстрая проверка логов проблемного сервиса',
+                code: `docker compose logs -f backend`
             },
             {
                 id: 7,
-                title: 'Integration: auth callback',
-                category: 'integration',
-                description: 'Проверка возврата token после mock OAuth callback',
-                code: `const res = await app.request('/api/auth/github/callback', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ code: 'test_ok' })
-});
-
-expect(res.status).toBe(200);
-expect((await res.json()).token).toBeTypeOf('string');`
+                title: 'Healthcheck smoke',
+                category: 'cd',
+                description: 'Минимальная проверка после старта контейнеров',
+                code: `curl -f http://localhost:3000/health`
             },
             {
                 id: 8,
-                title: 'Integration: protected endpoint',
-                category: 'integration',
-                description: 'Проверка доступа к endpoint с Bearer token',
-                code: `const res = await app.request('/api/auth/me', {
-  headers: { Authorization: \`Bearer \${token}\` }
-});
+                title: 'CI workflow skeleton',
+                category: 'ci',
+                description: 'Базовый GitHub Actions pipeline для LR11',
+                code: `name: CI
+on: [push, pull_request, workflow_dispatch]
 
-expect(res.status).toBe(200);`
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+      - run: docker build -t quiz-backend:ci .`
             },
             {
                 id: 9,
-                title: 'Security: token missing',
-                category: 'security',
-                description: 'Без токена protected endpoint должен вернуть 401',
-                code: `const res = await app.request('/api/auth/me');
-expect(res.status).toBe(401);`
+                title: 'Local CI fallback',
+                category: 'ci',
+                description: 'Локальное повторение шагов CI без GitHub runner',
+                code: `npm ci
+npm run lint
+npm run test
+npm run build
+docker build -t quiz-backend:ci .`
             },
             {
                 id: 10,
-                title: 'Security: role-based access',
-                category: 'security',
-                description: 'Student не должен иметь доступ к admin endpoints',
-                code: `const res = await app.request('/api/admin/questions', {
-  headers: { Authorization: \`Bearer \${studentToken}\` }
-});
-
-expect(res.status).toBe(403);`
+                title: 'act запуск workflow',
+                category: 'ci',
+                description: 'Опциональный запуск GitHub Actions локально',
+                code: `act -W .github/workflows/ci.yml`
             },
             {
                 id: 11,
-                title: 'Coverage command',
-                category: 'coverage',
-                description: 'Запуск отчёта покрытия для quality gate',
-                code: `npm run test:coverage`
+                title: 'Release tag для локального образа',
+                category: 'cd',
+                description: 'Тегирование версии перед локальным релизом',
+                code: `TAG=$(date +%Y%m%d-%H%M%S)
+docker build -t quiz-backend:$TAG .`
             },
             {
                 id: 12,
-                title: 'Fixture factory helper',
-                category: 'unit',
-                description: 'Генератор тестовых payload без копипаста',
-                code: `const basePayload = {
-  questionId: 'q1',
-  sessionId: 's1',
-  userAnswer: ['A']
-};
-
-export function makeAnswerPayload(overrides = {}) {
-  return { ...basePayload, ...overrides };
-}`
+                title: 'Rollback на предыдущий tag',
+                category: 'cd',
+                description: 'Локальный откат при неуспешном smoke-check',
+                code: `PREV_TAG=20260226-101500
+export BACKEND_IMAGE=quiz-backend:$PREV_TAG
+docker compose down
+docker compose up -d`
+            },
+            {
+                id: 13,
+                title: 'Вход в контейнер для диагностики',
+                category: 'debug',
+                description: 'Проверка файлов и окружения внутри контейнера',
+                code: `docker exec -it <backend_container_id> sh`
+            },
+            {
+                id: 14,
+                title: 'Очистка локального окружения',
+                category: 'debug',
+                description: 'Удаление контейнеров, сети и volumes после экспериментов',
+                code: `docker compose down -v`
             }
         ];
 
@@ -429,7 +438,7 @@ export function makeAnswerPayload(overrides = {}) {
                     </div>
                     <div class="example-body">
                         <p class="example-description">${example.description}</p>
-                        <pre><code class="language-typescript">${escapeHtml(example.code)}</code></pre>
+                        <pre><code class="language-yaml">${escapeHtml(example.code)}</code></pre>
                     </div>
                 `;
                 container.appendChild(card);
