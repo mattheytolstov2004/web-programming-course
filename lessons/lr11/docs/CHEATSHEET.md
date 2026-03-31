@@ -1,299 +1,156 @@
-# LR11: DevOps - Docker & CI/CD (Local-first)
+# LR10: Backend Testing & Validation
 
 ## Cheatsheet
 
-Короткие шаблоны для практики LR11.
-
-Формат: сначала **ЛИНУКС (эталон)**, затем **WINDOWS (PowerShell)**.
+Короткие шаблоны для практики LR10.
 
 ---
 
-## 1. Проверка окружения
+## 1. Установка
 
 ```bash
-# ЛИНУКС (эталон)
-docker --version
-docker compose version
-```
-
-```powershell
-# WINDOWS (PowerShell)
-docker --version
-docker compose version
+npm install -D vitest @vitest/coverage-v8 vitest-mock-extended
 ```
 
 ---
 
-## 2. Dockerfile (multi-stage, skeleton)
+## 2. Scripts
 
-```dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
+```json
+{
+  "scripts": {
+    "test:unit": "vitest run \"src/**/*.unit.test.ts\"",
+    "test:feature": "vitest run \"src/**/*.feature.test.ts\"",
+    "test": "vitest run \"src/**/*.{unit,feature}.test.ts\"",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  }
+}
 ```
 
 ---
 
-## 3. `.dockerignore`
+## 3. Vitest config
 
-```text
-node_modules
-npm-debug.log
-.git
-.gitignore
-coverage
-dist
-.env
+```ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "node",
+    globals: true,
+    include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/**/*.ts"],
+    },
+  },
+});
 ```
 
 ---
 
-## 4. Build + Run
+## 4. Co-located naming
+
+- `src/services/scoringService.unit.test.ts`
+- `src/routes/auth.feature.test.ts`
+- `src/utils/validation.unit.test.ts`
+
+---
+
+## 5. Mocking правило
+
+- Unit: мокируются внешние зависимости
+- Feature: сквозной сценарий без моков Prisma
+- Prisma в этом проекте:
+  - unit сервисов: mock
+  - feature: test DB
+
+---
+
+## 6. Prisma mock (unit)
+
+```ts
+import { vi, beforeEach } from "vitest";
+import { mockDeep, mockReset } from "vitest-mock-extended";
+import type { PrismaClient } from "@prisma/client";
+
+const prismaMock = mockDeep<PrismaClient>();
+vi.mock("../../src/db/client", () => ({ prisma: prismaMock }));
+
+beforeEach(() => {
+  mockReset(prismaMock);
+});
+```
+
+---
+
+## 7. Unit тест (пример)
+
+```ts
+it("should apply penalty for wrong answers", () => {
+  const score = service.scoreMultipleSelect(["A", "C"], ["A", "B"]);
+  expect(score).toBe(0.5);
+});
+```
+
+---
+
+## 8. Feature тест Hono (`app.request`)
+
+```ts
+const res = await app.request("/api/auth/github/callback", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ code: "test_ok" }),
+});
+
+expect(res.status).toBe(200);
+expect((await res.json()).token).toBeTypeOf("string");
+```
+
+---
+
+## 9. Feature тест Hono (`testClient`)
+
+```ts
+import { testClient } from "hono/testing";
+
+const client = testClient(app);
+const res = await client.api.auth.me.$get();
+expect(res.status).toBe(200);
+```
+
+---
+
+## 10. Validation (Zod)
+
+```ts
+const ok = AnswerSchema.safeParse(validPayload);
+expect(ok.success).toBe(true);
+
+const bad = AnswerSchema.safeParse(invalidPayload);
+expect(bad.success).toBe(false);
+```
+
+---
+
+## 11. Security checks
+
+```ts
+expect(noTokenRes.status).toBe(401);
+expect(invalidTokenRes.status).toBe(401);
+expect(forbiddenRes.status).toBe(403);
+expect(invalidPayloadRes.status).toBe(400);
+```
+
+---
+
+## 12. Coverage
 
 ```bash
-# ЛИНУКС (эталон)
-docker build -t quiz-backend:local .
-docker run --rm -p 3000:3000 --env-file .env quiz-backend:local
+npm run test:coverage
 ```
 
-```powershell
-# WINDOWS (PowerShell)
-docker build -t quiz-backend:local .
-docker run --rm -p 3000:3000 --env-file .env quiz-backend:local
-```
-
----
-
-## 5. `docker-compose.yml` (минимум)
-
-```yaml
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: quiz
-      POSTGRES_USER: quiz
-      POSTGRES_PASSWORD: quiz
-
-  backend:
-    build: .
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    depends_on:
-      - db
-```
-
----
-
-## 6. Compose команды
-
-```bash
-# ЛИНУКС (эталон)
-docker compose up --build -d
-docker compose ps
-docker compose logs -f backend
-docker compose down -v
-```
-
-```powershell
-# WINDOWS (PowerShell)
-docker compose up --build -d
-docker compose ps
-docker compose logs -f backend
-docker compose down -v
-```
-
----
-
-## 7. Healthcheck
-
-```bash
-# ЛИНУКС (эталон)
-curl -f http://localhost:3000/health
-```
-
-```powershell
-# WINDOWS (PowerShell)
-$resp = Invoke-WebRequest -Uri "http://localhost:3000/health"
-if ($resp.StatusCode -ne 200) { throw "Healthcheck failed" }
-```
-
----
-
-## 8. GitHub Actions CI (базовый)
-
-```yaml
-name: CI
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
-jobs:
-  ci:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test
-      - run: npm run build
-      - run: docker build -t quiz-backend:ci .
-```
-
----
-
-## 9. Локальный запуск workflow (optional)
-
-```bash
-# ЛИНУКС (эталон)
-act -W .github/workflows/ci.yml
-```
-
-```powershell
-# WINDOWS (PowerShell)
-act -W .github/workflows/ci.yml
-```
-
-Fallback:
-
-```bash
-# ЛИНУКС (эталон)
-npm ci
-npm run lint
-npm run test
-npm run build
-docker build -t quiz-backend:ci .
-```
-
-```powershell
-# WINDOWS (PowerShell)
-npm ci
-npm run lint
-npm run test
-npm run build
-docker build -t quiz-backend:ci .
-```
-
----
-
-## 10. Local release script (идея)
-
-```bash
-# ЛИНУКС (эталон) - scripts/local-release.sh
-#!/usr/bin/env bash
-set -euo pipefail
-
-TAG=$(date +%Y%m%d-%H%M%S)
-docker build -t quiz-backend:$TAG .
-
-docker compose up -d --build
-curl -f http://localhost:3000/health
-
-echo "Release ok: $TAG"
-```
-
-```powershell
-# WINDOWS (PowerShell) - scripts/local-release.ps1
-$ErrorActionPreference = "Stop"
-
-$TAG = Get-Date -Format "yyyyMMdd-HHmmss"
-docker build -t quiz-backend:$TAG .
-
-docker compose up -d --build
-$resp = Invoke-WebRequest -Uri "http://localhost:3000/health"
-if ($resp.StatusCode -ne 200) { throw "Healthcheck failed" }
-
-Write-Host "Release ok: $TAG"
-```
-
----
-
-## 11. Local rollback (идея)
-
-```bash
-# ЛИНУКС (эталон) - scripts/rollback-local.sh
-#!/usr/bin/env bash
-set -euo pipefail
-
-PREV_TAG="$1"
-export BACKEND_IMAGE="quiz-backend:${PREV_TAG}"
-
-docker compose down
-docker compose up -d
-curl -f http://localhost:3000/health
-```
-
-```powershell
-# WINDOWS (PowerShell) - scripts/rollback-local.ps1
-param(
-  [Parameter(Mandatory = $true)]
-  [string]$PrevTag
-)
-
-$ErrorActionPreference = "Stop"
-$env:BACKEND_IMAGE = "quiz-backend:$PrevTag"
-
-docker compose down
-docker compose up -d
-$resp = Invoke-WebRequest -Uri "http://localhost:3000/health"
-if ($resp.StatusCode -ne 200) { throw "Healthcheck failed" }
-```
-
----
-
-## 12. Диагностика
-
-```bash
-# ЛИНУКС (эталон)
-docker images | head
-docker ps -a
-docker logs <container_id>
-docker exec -it <container_id> sh
-```
-
-```powershell
-# WINDOWS (PowerShell)
-docker images
-docker ps -a
-docker logs <container_id>
-docker exec -it <container_id> /bin/sh
-```
-
----
-
-## 13. Минимум для зачёта
-
-- Dockerfile (multi-stage)
-- Compose backend + db
-- CI workflow (`lint`, `test`, `build`, `docker build`)
-- Smoke-check после запуска
-- Локальный release/rollback сценарий
-
----
-
-## 14. Что не делаем в LR11
-
-- Remote deploy на Railway/Render/Vercel
-- Production secrets management во внешних vault
-- Kubernetes
+Цель в LR10: оценить фактическое покрытие и найти непротестированные зоны.
