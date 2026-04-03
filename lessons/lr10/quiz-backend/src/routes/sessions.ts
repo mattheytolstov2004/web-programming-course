@@ -17,7 +17,6 @@ import {
 import { prisma } from '../lib/prisma.js'
  
 const sessions = new Hono()
-const EXTERNAL_API = 'http://dancv.ddns.net'
  
 sessions.use('*', authMiddleware)
  
@@ -58,7 +57,7 @@ async function createExternalSession(
   categoryId?: string,
 ): Promise<ExternalSessionResponse | null> {
   try {
-    const res = await fetch(`${EXTERNAL_API}/api/sessions`, {
+    const res = await fetch(`/api/sessions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
