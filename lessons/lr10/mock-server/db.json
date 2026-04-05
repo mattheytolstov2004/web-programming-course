@@ -1,0 +1,448 @@
+{
+  "users": [
+    {
+      "id": "usr_admin",
+      "githubId": "1",
+      "username": "admin",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/1",
+      "email": "admin@example.com",
+      "role": "admin",
+      "createdAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "usr_student1",
+      "githubId": "2",
+      "username": "student1",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/2",
+      "email": "student1@example.com",
+      "role": "student",
+      "createdAt": "2025-01-12T10:00:00Z"
+    }
+  ],
+  "userDifficultySettings": [],
+  "mode": {
+    "mode": "battle",
+    "battleConfig": {
+      "questionCount": 10,
+      "timeLimit": 90
+    }
+  },
+  "categories": [
+    {
+      "id": "cat_react",
+      "name": "React",
+      "slug": "cat_react",
+      "description": "Вопросы по React и хукам",
+      "questionCount": 4
+    },
+    {
+      "id": "cat_typescript",
+      "name": "TypeScript",
+      "slug": "cat_typescript",
+      "description": "Типизация и TypeScript",
+      "questionCount": 3
+    },
+    {
+      "id": "cat_api",
+      "name": "Работа с API",
+      "slug": "cat_api",
+      "description": "fetch, axios, React Query",
+      "questionCount": 3
+    }
+  ],
+  "questions": [
+    {
+      "id": "q_005",
+      "type": "multiple-select",
+      "question": "Что делает React Query автоматически?",
+      "difficulty": "medium",
+      "categoryId": "cat_api",
+      "maxPoints": 5,
+      "options": [
+        {
+          "text": "Кэширование данных",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "Валидация форм",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "Фоновое обновление данных",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "Дедупликация запросов",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "Рендеринг компонентов",
+          "points": 0,
+          "isCorrect": false
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_009",
+      "type": "multiple-select",
+      "question": "Какие хуки React используются для управления состоянием?",
+      "difficulty": "easy",
+      "categoryId": "cat_react",
+      "maxPoints": 4,
+      "options": [
+        {
+          "text": "useState",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "useReducer",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "useRef",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "useContext",
+          "points": 0,
+          "isCorrect": false
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_008",
+      "type": "essay",
+      "question": "Объясните разницу между interface и type в TypeScript. Когда использовать каждый из них?",
+      "difficulty": "medium",
+      "categoryId": "cat_typescript",
+      "maxPoints": 6,
+      "minLength": 100,
+      "maxLength": 1000,
+      "rubric": [
+        {
+          "criterion": "Понимание interface",
+          "maxPoints": 2,
+          "description": "Объясняет возможности interface: extends, declaration merging"
+        },
+        {
+          "criterion": "Понимание type",
+          "maxPoints": 2,
+          "description": "Объясняет возможности type: union, intersection, mapped types"
+        },
+        {
+          "criterion": "Когда использовать",
+          "maxPoints": 2,
+          "description": "Даёт практические рекомендации по выбору"
+        }
+      ],
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_001",
+      "type": "multiple-select",
+      "question": "Какие хуки используются для side effects в React?",
+      "difficulty": "medium",
+      "categoryId": "cat_react",
+      "maxPoints": 4,
+      "options": [
+        {
+          "text": "useState",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "useEffect",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "useLayoutEffect",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "useMemo",
+          "points": 0,
+          "isCorrect": false
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_002",
+      "type": "multiple-select",
+      "question": "Какие из перечисленных методов являются HTTP-методами?",
+      "difficulty": "easy",
+      "categoryId": "cat_api",
+      "maxPoints": 5,
+      "options": [
+        {
+          "text": "GET",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "PUSH",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "POST",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "FETCH",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "DELETE",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "PATCH",
+          "points": 1,
+          "isCorrect": true
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_004",
+      "type": "multiple-select",
+      "question": "Какие типы данных существуют в TypeScript?",
+      "difficulty": "easy",
+      "categoryId": "cat_typescript",
+      "maxPoints": 6,
+      "options": [
+        {
+          "text": "string",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "int",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "number",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "boolean",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "any",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "array",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "unknown",
+          "points": 2,
+          "isCorrect": true
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_003",
+      "type": "essay",
+      "question": "Объясните разницу между useMemo и useCallback. Приведите примеры использования.",
+      "difficulty": "hard",
+      "categoryId": "cat_react",
+      "maxPoints": 5,
+      "minLength": 100,
+      "maxLength": 1000,
+      "rubric": [
+        {
+          "criterion": "Понимание useMemo",
+          "maxPoints": 2,
+          "description": "Объясняет, что useMemo мемоизирует вычисленные значения"
+        },
+        {
+          "criterion": "Понимание useCallback",
+          "maxPoints": 2,
+          "description": "Объясняет, что useCallback мемоизирует функции"
+        },
+        {
+          "criterion": "Примеры использования",
+          "maxPoints": 1,
+          "description": "Приводит корректные примеры кода"
+        }
+      ],
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_006",
+      "type": "essay",
+      "question": "Опишите жизненный цикл компонента в React. Какие методы вызываются на каждом этапе?",
+      "difficulty": "hard",
+      "categoryId": "cat_react",
+      "maxPoints": 8,
+      "minLength": 200,
+      "maxLength": 1500,
+      "rubric": [
+        {
+          "criterion": "Понимание mounting фазы",
+          "maxPoints": 3,
+          "description": "Объясняет constructor, render, componentDidMount"
+        },
+        {
+          "criterion": "Понимание updating фазы",
+          "maxPoints": 3,
+          "description": "Объясняет shouldComponentUpdate, render, componentDidUpdate"
+        },
+        {
+          "criterion": "Понимание unmounting фазы",
+          "maxPoints": 2,
+          "description": "Объясняет componentWillUnmount и cleanup"
+        }
+      ],
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_007",
+      "type": "multiple-select",
+      "question": "Что такое Generic типы в TypeScript?",
+      "difficulty": "medium",
+      "categoryId": "cat_typescript",
+      "maxPoints": 4,
+      "options": [
+        {
+          "text": "Типы которые работают с любым типом данных",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "Только числовые типы",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "Параметризованные типы",
+          "points": 2,
+          "isCorrect": true
+        },
+        {
+          "text": "Типы только для массивов",
+          "points": 0,
+          "isCorrect": false
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    },
+    {
+      "id": "q_010",
+      "type": "multiple-select",
+      "question": "Какие статус-коды HTTP означают успешный ответ?",
+      "difficulty": "easy",
+      "categoryId": "cat_api",
+      "maxPoints": 4,
+      "options": [
+        {
+          "text": "200 OK",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "201 Created",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "404 Not Found",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "204 No Content",
+          "points": 1,
+          "isCorrect": true
+        },
+        {
+          "text": "500 Internal Server Error",
+          "points": 0,
+          "isCorrect": false
+        },
+        {
+          "text": "301 Moved Permanently",
+          "points": 1,
+          "isCorrect": true
+        }
+      ],
+      "penaltyPerWrong": -1,
+      "minScore": 0,
+      "createdAt": "2025-01-10T10:00:00Z",
+      "updatedAt": "2025-01-10T10:00:00Z"
+    }
+  ],
+  "sessions": [
+    {
+      "sessionId": "sess_1775394097717",
+      "userId": "usr_student1",
+      "status": "active",
+      "mode": "battle",
+      "questionIds": [
+        "q_005",
+        "q_009",
+        "q_008",
+        "q_001",
+        "q_002",
+        "q_004",
+        "q_003",
+        "q_006",
+        "q_007",
+        "q_010"
+      ],
+      "totalQuestions": 10,
+      "answeredCount": 0,
+      "maxScore": 51,
+      "currentScore": 0,
+      "createdAt": "2026-04-05T13:01:37.717Z",
+      "completedAt": null,
+      "expiresAt": "2026-04-05T14:31:37.717Z"
+    }
+  ],
+  "answers": []
+}

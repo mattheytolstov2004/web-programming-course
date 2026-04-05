@@ -4727,6 +4727,7 @@ export namespace Prisma {
     userId: string | null
     status: string | null
     score: number | null
+    questionIds: string | null
     startedAt: Date | null
     expiresAt: Date | null
     completedAt: Date | null
@@ -4739,6 +4740,7 @@ export namespace Prisma {
     userId: string | null
     status: string | null
     score: number | null
+    questionIds: string | null
     startedAt: Date | null
     expiresAt: Date | null
     completedAt: Date | null
@@ -4751,6 +4753,7 @@ export namespace Prisma {
     userId: number
     status: number
     score: number
+    questionIds: number
     startedAt: number
     expiresAt: number
     completedAt: number
@@ -4773,6 +4776,7 @@ export namespace Prisma {
     userId?: true
     status?: true
     score?: true
+    questionIds?: true
     startedAt?: true
     expiresAt?: true
     completedAt?: true
@@ -4785,6 +4789,7 @@ export namespace Prisma {
     userId?: true
     status?: true
     score?: true
+    questionIds?: true
     startedAt?: true
     expiresAt?: true
     completedAt?: true
@@ -4797,6 +4802,7 @@ export namespace Prisma {
     userId?: true
     status?: true
     score?: true
+    questionIds?: true
     startedAt?: true
     expiresAt?: true
     completedAt?: true
@@ -4896,6 +4902,7 @@ export namespace Prisma {
     userId: string
     status: string
     score: number | null
+    questionIds: string
     startedAt: Date
     expiresAt: Date
     completedAt: Date | null
@@ -4927,6 +4934,7 @@ export namespace Prisma {
     userId?: boolean
     status?: boolean
     score?: boolean
+    questionIds?: boolean
     startedAt?: boolean
     expiresAt?: boolean
     completedAt?: boolean
@@ -4942,6 +4950,7 @@ export namespace Prisma {
     userId?: boolean
     status?: boolean
     score?: boolean
+    questionIds?: boolean
     startedAt?: boolean
     expiresAt?: boolean
     completedAt?: boolean
@@ -4955,6 +4964,7 @@ export namespace Prisma {
     userId?: boolean
     status?: boolean
     score?: boolean
+    questionIds?: boolean
     startedAt?: boolean
     expiresAt?: boolean
     completedAt?: boolean
@@ -4968,6 +4978,7 @@ export namespace Prisma {
     userId?: boolean
     status?: boolean
     score?: boolean
+    questionIds?: boolean
     startedAt?: boolean
     expiresAt?: boolean
     completedAt?: boolean
@@ -4975,7 +4986,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "status" | "score" | "startedAt" | "expiresAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["session"]>
+  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "status" | "score" | "questionIds" | "startedAt" | "expiresAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["session"]>
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     answers?: boolean | Session$answersArgs<ExtArgs>
@@ -4999,6 +5010,7 @@ export namespace Prisma {
       userId: string
       status: string
       score: number | null
+      questionIds: string
       startedAt: Date
       expiresAt: Date
       completedAt: Date | null
@@ -5433,6 +5445,7 @@ export namespace Prisma {
     readonly userId: FieldRef<"Session", 'String'>
     readonly status: FieldRef<"Session", 'String'>
     readonly score: FieldRef<"Session", 'Float'>
+    readonly questionIds: FieldRef<"Session", 'String'>
     readonly startedAt: FieldRef<"Session", 'DateTime'>
     readonly expiresAt: FieldRef<"Session", 'DateTime'>
     readonly completedAt: FieldRef<"Session", 'DateTime'>
@@ -7076,6 +7089,7 @@ export namespace Prisma {
     userId: 'userId',
     status: 'status',
     score: 'score',
+    questionIds: 'questionIds',
     startedAt: 'startedAt',
     expiresAt: 'expiresAt',
     completedAt: 'completedAt',
@@ -7367,6 +7381,7 @@ export namespace Prisma {
     userId?: StringFilter<"Session"> | string
     status?: StringFilter<"Session"> | string
     score?: FloatNullableFilter<"Session"> | number | null
+    questionIds?: StringFilter<"Session"> | string
     startedAt?: DateTimeFilter<"Session"> | Date | string
     expiresAt?: DateTimeFilter<"Session"> | Date | string
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -7381,6 +7396,7 @@ export namespace Prisma {
     userId?: SortOrder
     status?: SortOrder
     score?: SortOrderInput | SortOrder
+    questionIds?: SortOrder
     startedAt?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
@@ -7398,6 +7414,7 @@ export namespace Prisma {
     userId?: StringFilter<"Session"> | string
     status?: StringFilter<"Session"> | string
     score?: FloatNullableFilter<"Session"> | number | null
+    questionIds?: StringFilter<"Session"> | string
     startedAt?: DateTimeFilter<"Session"> | Date | string
     expiresAt?: DateTimeFilter<"Session"> | Date | string
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -7412,6 +7429,7 @@ export namespace Prisma {
     userId?: SortOrder
     status?: SortOrder
     score?: SortOrderInput | SortOrder
+    questionIds?: SortOrder
     startedAt?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
@@ -7432,6 +7450,7 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"Session"> | string
     status?: StringWithAggregatesFilter<"Session"> | string
     score?: FloatNullableWithAggregatesFilter<"Session"> | number | null
+    questionIds?: StringWithAggregatesFilter<"Session"> | string
     startedAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
     expiresAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
     completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
@@ -7740,6 +7759,7 @@ export namespace Prisma {
     id?: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -7754,6 +7774,7 @@ export namespace Prisma {
     userId: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -7766,6 +7787,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -7780,6 +7802,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -7793,6 +7816,7 @@ export namespace Prisma {
     userId: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -7804,6 +7828,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -7816,6 +7841,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -8182,6 +8208,7 @@ export namespace Prisma {
     userId?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    questionIds?: SortOrder
     startedAt?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrder
@@ -8198,6 +8225,7 @@ export namespace Prisma {
     userId?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    questionIds?: SortOrder
     startedAt?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrder
@@ -8210,6 +8238,7 @@ export namespace Prisma {
     userId?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    questionIds?: SortOrder
     startedAt?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrder
@@ -8785,6 +8814,7 @@ export namespace Prisma {
     id?: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -8797,6 +8827,7 @@ export namespace Prisma {
     id?: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -8838,6 +8869,7 @@ export namespace Prisma {
     userId?: StringFilter<"Session"> | string
     status?: StringFilter<"Session"> | string
     score?: FloatNullableFilter<"Session"> | number | null
+    questionIds?: StringFilter<"Session"> | string
     startedAt?: DateTimeFilter<"Session"> | Date | string
     expiresAt?: DateTimeFilter<"Session"> | Date | string
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
@@ -9122,6 +9154,7 @@ export namespace Prisma {
     id?: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -9135,6 +9168,7 @@ export namespace Prisma {
     userId: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -9189,6 +9223,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -9202,6 +9237,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -9246,6 +9282,7 @@ export namespace Prisma {
     id?: string
     status?: string
     score?: number | null
+    questionIds?: string
     startedAt?: Date | string
     expiresAt: Date | string
     completedAt?: Date | string | null
@@ -9257,6 +9294,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -9269,6 +9307,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -9281,6 +9320,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     score?: NullableFloatFieldUpdateOperationsInput | number | null
+    questionIds?: StringFieldUpdateOperationsInput | string
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

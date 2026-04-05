@@ -47,6 +47,7 @@ model Session {
   user        User      @relation(fields: [userId], references: [id])
   status      String    @default("in_progress")
   score       Float?
+  questionIds String    @default("[]") // JSON массив ID вопросов
   startedAt   DateTime  @default(now())
   expiresAt   DateTime
   completedAt DateTime?

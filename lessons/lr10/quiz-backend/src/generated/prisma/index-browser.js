@@ -152,6 +152,7 @@ exports.Prisma.SessionScalarFieldEnum = {
   userId: 'userId',
   status: 'status',
   score: 'score',
+  questionIds: 'questionIds',
   startedAt: 'startedAt',
   expiresAt: 'expiresAt',
   completedAt: 'completedAt',
