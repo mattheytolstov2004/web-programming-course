@@ -4,226 +4,146 @@ import type { PrismaClient } from "@prisma/client"
 import { sessionService } from "./sessionService.js"
 import { scoringService } from "./scoringService.js"
 
-vi.mock("../db/prisma.js", () => ({
+vi.mock("../lib/prisma.js", () => ({
   prisma: mockDeep<PrismaClient>()
 }))
 
-import { prisma } from "../db/prisma.js"
+import { prisma } from "../lib/prisma.js"
 const prismaMock = prisma as unknown as ReturnType<typeof mockDeep<PrismaClient>>
 
 describe("SessionService Unit Tests", () => {
-  const mockUserId = "user123"
-  
   beforeEach(() => {
     mockReset(prismaMock)
   })
 
   describe("submitAnswer", () => {
     it("should throw error if question not found", async () => {
-      // Мокаем поиск сессии (возвращаем сессию пользователя)
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: mockUserId,
+        userId: "user123",
         status: "in_progress",
         expiresAt: new Date(Date.now() + 3600000)
       } as any)
-      
-      // Мокаем поиск вопроса (не найден)
       prismaMock.question.findUnique.mockResolvedValue(null)
-      
-      // Мокаем транзакцию
-      prismaMock.$transaction.mockImplementation(async (callback) => {
-        return callback(prismaMock)
-      })
 
       await expect(sessionService.submitAnswer(
         "session123",
         "question123",
-        "4",
-        mockUserId
+        ["4"]
       )).rejects.toThrow("Question not found")
     })
 
-    it("should throw error if session belongs to another user", async () => {
-      // Сессия принадлежит другому пользователю
+    it("should throw error if session is expired", async () => {
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: "another-user",
+        userId: "user123",
         status: "in_progress",
-        expiresAt: new Date(Date.now() + 3600000)
+        expiresAt: new Date(Date.now() - 1000)
       } as any)
 
       await expect(sessionService.submitAnswer(
         "session123",
         "question123",
-        "4",
-        mockUserId
-      )).rejects.toThrow("permission")
+        ["4"]
+      )).rejects.toThrow("expired")
     })
 
     it("should calculate score for single-select", async () => {
-      // Мокаем сессию
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: mockUserId,
+        userId: "user123",
         status: "in_progress",
         expiresAt: new Date(Date.now() + 3600000)
       } as any)
-      
-      // Мокаем вопрос
-      const mockQuestion = {
+      prismaMock.question.findUnique.mockResolvedValue({
         id: "question123",
         type: "single-select",
-        correctAnswer: "4"
-      } as any
-
-      prismaMock.question.findUnique.mockResolvedValue(mockQuestion)
-      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
-      
-      // Мокаем, что ответа еще нет
+        correctAnswer: JSON.stringify(["4"]),
+        points: 1
+      } as any)
       prismaMock.answer.findUnique.mockResolvedValue(null)
-      
       prismaMock.answer.upsert.mockResolvedValue({} as any)
 
-      await sessionService.submitAnswer(
-        "session123", 
-        "question123", 
-        "4",
-        mockUserId
-      )
+      await sessionService.submitAnswer("session123", "question123", ["4"])
       expect(prismaMock.answer.upsert).toHaveBeenCalled()
     })
 
     it("should calculate score for multiple-select", async () => {
-      // Мокаем сессию
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: mockUserId,
+        userId: "user123",
         status: "in_progress",
         expiresAt: new Date(Date.now() + 3600000)
       } as any)
-      
-      const mockQuestion = {
+      prismaMock.question.findUnique.mockResolvedValue({
         id: "question123",
         type: "multiple-select",
-        correctAnswer: ["A", "C"]
-      } as any
-
-      prismaMock.question.findUnique.mockResolvedValue(mockQuestion)
-      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
-      
-      // Мокаем, что ответа еще нет
+        correctAnswer: JSON.stringify(["A", "C"]),
+        points: 2
+      } as any)
       prismaMock.answer.findUnique.mockResolvedValue(null)
-      
       const spy = vi.spyOn(scoringService, "scoreMultipleSelect")
       prismaMock.answer.upsert.mockResolvedValue({} as any)
-      
-      await sessionService.submitAnswer(
-        "session123", 
-        "question123", 
-        ["A", "B"],
-        mockUserId
-      )
+
+      await sessionService.submitAnswer("session123", "question123", ["A", "B"])
       expect(spy).toHaveBeenCalled()
     })
 
     it("should throw error if answering same question twice", async () => {
-      // Мокаем сессию
-      prismaMock.session.findUnique.mockResolvedValue({
-        id: "session123",
-        userId: mockUserId,
-        status: "in_progress",
-        expiresAt: new Date(Date.now() + 3600000)
-      } as any)
-      
-      // Мокаем вопрос
-      const mockQuestion = {
-        id: "question123",
-        type: "single-select",
-        correctAnswer: "4"
-      } as any
-
-      prismaMock.question.findUnique.mockResolvedValue(mockQuestion)
-      
-      // Мокаем транзакцию с проверкой существующего ответа
-      prismaMock.$transaction.mockImplementation(async (callback) => {
-        // Симулируем, что ответ уже существует
-        const error = new Error("You have already answered this question")
-        throw error
+      prismaMock.$transaction.mockImplementation(async () => {
+        throw new Error("Answer already submitted for this question")
       })
 
       await expect(sessionService.submitAnswer(
         "session123",
         "question123",
-        "4",
-        mockUserId
-      )).rejects.toThrow("already answered")
+        ["4"]
+      )).rejects.toThrow("already submitted")
     })
   })
 
   describe("submitSession", () => {
-    it("should throw error if session belongs to another user", async () => {
-      // Сессия принадлежит другому пользователю
+    it("should throw error if session is already completed", async () => {
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: "another-user",
+        userId: "user123",
+        status: "completed",
         expiresAt: new Date(Date.now() + 3600000),
         answers: []
       } as any)
 
-      // Мокаем транзакцию
-      prismaMock.$transaction.mockImplementation(async (callback) => {
-        return callback(prismaMock)
-      })
-
-      await expect(sessionService.submitSession(
-        "session123",
-        mockUserId
-      )).rejects.toThrow("permission")
+      await expect(sessionService.submitSession("session123")).rejects.toThrow("completed")
     })
 
     it("should throw error if session expired", async () => {
-      // Сессия принадлежит текущему пользователю, но истекла
-      const mockSession = {
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
+      prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
-        userId: mockUserId,
-        expiresAt: new Date(Date.now() - 1000), // просрочена
+        userId: "user123",
+        status: "in_progress",
+        expiresAt: new Date(Date.now() - 1000),
         answers: []
-      } as any
+      } as any)
 
-      // Мокаем findUnique для сессии
-      prismaMock.session.findUnique.mockResolvedValue(mockSession)
-      
-      // Мокаем транзакцию - ВАЖНО: добавляем этот мок!
-      prismaMock.$transaction.mockImplementation(async (callback) => {
-        return callback(prismaMock)
-      })
-
-      await expect(sessionService.submitSession(
-        "session123",
-        mockUserId
-      )).rejects.toThrow("expired")
+      await expect(sessionService.submitSession("session123")).rejects.toThrow("expired")
     })
 
     it("should calculate total score on submit", async () => {
-      // Сессия принадлежит текущему пользователю
+      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
       const mockSession = {
         id: "session123",
-        userId: mockUserId,
+        userId: "user123",
+        status: "in_progress",
         expiresAt: new Date(Date.now() + 10000),
-        answers: [
-          { score: 1 },
-          { score: 0.5 }
-        ]
+        answers: [{ score: 1 }, { score: 0.5 }]
       } as any
 
       prismaMock.session.findUnique.mockResolvedValue(mockSession)
-      
-      // Мокаем транзакцию
-      prismaMock.$transaction.mockImplementation(async (callback) => {
-        return callback(prismaMock)
-      })
-      
       prismaMock.session.update.mockResolvedValue({
         ...mockSession,
         status: "completed",
@@ -231,8 +151,8 @@ describe("SessionService Unit Tests", () => {
         completedAt: new Date()
       } as any)
 
-      const result = await sessionService.submitSession("session123", mockUserId)
-      
+      const result = await sessionService.submitSession("session123")
+
       expect(prismaMock.session.update).toHaveBeenCalledWith({
         where: { id: "session123" },
         data: {
