@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { mockDeep, mockReset } from "vitest-mock-extended"
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "../generated/prisma/client.js"
 import { sessionService } from "./sessionService.js"
 import { scoringService } from "./scoringService.js"
 
@@ -35,7 +35,7 @@ describe("SessionService Unit Tests", () => {
     })
 
     it("should throw error if session is expired", async () => {
-      prismaMock.$transaction.mockImplementation(async (cb) => cb(prismaMock))
+      prismaMock.$transaction.mockImplementation(async (cb: (tx: any) => any) => cb(prismaMock))
       prismaMock.session.findUnique.mockResolvedValue({
         id: "session123",
         userId: "user123",
