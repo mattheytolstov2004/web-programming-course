@@ -2,21 +2,21 @@ services:
   backend:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - DATABASE_URL=file:./prisma/dev.db
+      - DATABASE_URL=file:./dev.db
       - JWT_SECRET=${JWT_SECRET}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       - NODE_ENV=production
-    volumes:
-      - db-data:/app/prisma
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 5s
+    command: sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma && node dist/src/server.js"
+    volumes:
+      - sqlite-data:/app/prisma
 
 volumes:
-  db-data:
+  sqlite-data:

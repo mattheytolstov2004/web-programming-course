@@ -7,7 +7,7 @@ import { getGitHubUserByCode } from "../services/github.js"
  
 const auth = new Hono()
 const JWT_SECRET = process.env.JWT_SECRET!
-const EXTERNAL_API = "http://dancv.ddns.net"
+const EXTERNAL_API = process.env.EXTERNAL_API_URL ?? 'http://localhost:3001'
  
 type ExternalUser = {
   id: string

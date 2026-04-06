@@ -19,12 +19,12 @@ export class DuplicateAnswerError extends Error {
 }
 
 export class SessionService {
-  async createSession(userId: string) {
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // +1 час
-    return await prisma.session.create({
-      data: { userId, expiresAt },
-    });
-  }
+  async createSession(userId: string, questionIds: string[]) {
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
+  return await prisma.session.create({
+    data: { userId, expiresAt, questionIds: JSON.stringify(questionIds) },
+  })
+}
 
   async getSession(sessionId: string, userId: string) {
     const session = await prisma.session.findUnique({
